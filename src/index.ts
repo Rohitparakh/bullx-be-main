@@ -22,7 +22,7 @@ interface SocRequest extends Request {
   io?: any;
 }
 
-const PORT: string | number = process.env.PORT || 4000;
+const PORT: string | number = process.env.PORT || 3000;
 
 const app = express();
 const server = http.createServer(app);
