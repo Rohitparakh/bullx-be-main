@@ -38,38 +38,7 @@ const server = http.createServer(app);
 app.use(cors()); // Allow all origins
 
 
-console.log("🔍 Checking Environment Variables:");
 
-const envVars = {
-  PORT: process.env.PORT,
-  MONGO_URI: process.env.MONGO_URI,
-  RPC_ENDPOINT: process.env.RPC_ENDPOINT,
-  METADATA_URL: process.env.METADATA_URL,
-  OHLC_BASE_URL: process.env.OHLC_BASE_URL,
-  SOL_PRICE_URL: process.env.SOL_PRICE_URL,
-  CMC_API_KEY: process.env.CMC_API_KEY,
-  LATEST_TRADE_URL: process.env.LATEST_TRADE_URL,
-  LATEST_COIN_URL: process.env.LATEST_COIN_URL,
-  THREAD_URL: process.env.THREAD_URL,
-  TRANSCATION_URL: process.env.TRANSCATION_URL,
-  TOKEN_DATA_URL: process.env.TOKEN_DATA_URL,
-  BITQUERY_API_KEY: process.env.BITQUERY_API_KEY,
-  HELIUS_RPC: process.env.HELIUS_RPC,
-  BITQUERY_TOKEN: process.env.BITQUERY_TOKEN,
-  BITQUERY_CLIENT_ID: process.env.BITQUERY_CLIENT_ID,
-  BITQUERY_CLIENT_SECRET: process.env.BITQUERY_CLIENT_SECRET,
-  JWT_SECRET: process.env.JWT_SECRET,
-  PUMPPORTAL_WS_ENDPOINT: process.env.PUMPPORTAL_WS_ENDPOINT,
-  SOLSCAN_TOKEN: process.env.SOLSCAN_TOKEN,
-};
-
-// Hide sensitive values (optional)
-const safeEnvVars = Object.fromEntries(
-  Object.entries(envVars).map(([key, value]) => [key, value ? "Exists ✅" : "Missing ❌"])
-);
-
-console.log(safeEnvVars);
-console.log("All ENV Variables:", process.env);
 
 // ✅ Middleware to set CORS Headers (Extra Protection)
 app.use((req: SocRequest, res: Response, next: NextFunction) => {
@@ -135,6 +104,39 @@ mongoose
   .then(() => {
     console.log("Connected to the database! ❤️");
     // console.log("Solscan API Key:", process.env.SOLSCAN_API_KEY);
+
+console.log("🔍 Checking Environment Variables:");
+
+const envVars = {
+  PORT: process.env.PORT,
+  MONGO_URI: process.env.MONGO_URI,
+  RPC_ENDPOINT: process.env.RPC_ENDPOINT,
+  METADATA_URL: process.env.METADATA_URL,
+  OHLC_BASE_URL: process.env.OHLC_BASE_URL,
+  SOL_PRICE_URL: process.env.SOL_PRICE_URL,
+  CMC_API_KEY: process.env.CMC_API_KEY,
+  LATEST_TRADE_URL: process.env.LATEST_TRADE_URL,
+  LATEST_COIN_URL: process.env.LATEST_COIN_URL,
+  THREAD_URL: process.env.THREAD_URL,
+  TRANSCATION_URL: process.env.TRANSCATION_URL,
+  TOKEN_DATA_URL: process.env.TOKEN_DATA_URL,
+  BITQUERY_API_KEY: process.env.BITQUERY_API_KEY,
+  HELIUS_RPC: process.env.HELIUS_RPC,
+  BITQUERY_TOKEN: process.env.BITQUERY_TOKEN,
+  BITQUERY_CLIENT_ID: process.env.BITQUERY_CLIENT_ID,
+  BITQUERY_CLIENT_SECRET: process.env.BITQUERY_CLIENT_SECRET,
+  JWT_SECRET: process.env.JWT_SECRET,
+  PUMPPORTAL_WS_ENDPOINT: process.env.PUMPPORTAL_WS_ENDPOINT,
+  SOLSCAN_TOKEN: process.env.SOLSCAN_TOKEN,
+};
+
+// Hide sensitive values (optional)
+const safeEnvVars = Object.fromEntries(
+  Object.entries(envVars).map(([key, value]) => [key, value ? "Exists ✅" : "Missing ❌"])
+);
+
+console.log(safeEnvVars);
+console.log("All ENV Variables:");
 
     server.listen(PORT, () => {
       console.log(`Server listening on port ${PORT} 🚀`);
