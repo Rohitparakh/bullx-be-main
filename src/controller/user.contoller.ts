@@ -20,6 +20,8 @@ export const userRegist = expressAsyncHandler(
             console.log("buffer:", keyPair.publicKey.toBuffer())
 
             const newUser = new User({
+                username: "Username",
+                userId: 0,
                 pubKey: bs58.encode(keyPair.publicKey.toBuffer()),
                 prvKey: bs58.encode(keyPair.secretKey),
                 solBalance: 50

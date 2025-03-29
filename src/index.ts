@@ -78,7 +78,7 @@ io.on("connection", (socket: Socket) => {
     if (!user) {
       const keyPair = solanaWeb3.Keypair.generate();
       const newUser = new User({
-        username: bs58.encode(keyPair.publicKey.toBuffer()),
+        username: "Username",
         userId: 0,
         pubKey: bs58.encode(keyPair.publicKey.toBuffer()),
         prvKey: bs58.encode(keyPair.secretKey),
@@ -139,6 +139,7 @@ const safeEnvVars = Object.fromEntries(
 
 console.log(safeEnvVars);
 console.log("All ENV Variables:");
+console.log(process.env);
 
     server.listen(PORT, () => {
       console.log(`Server listening on port ${PORT} 🚀`);
