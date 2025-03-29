@@ -104,6 +104,7 @@ mongoose
     console.log("Connected to the database! ❤️");
     server.listen(PORT);
     console.log("Server listening on:", PORT);
+    console.log("Solscan API Key:", process.env.SOLSCAN_API_KEY);
 
     // subscribeToCreateToken();
   })
