@@ -46,6 +46,9 @@ export const walletTokens = expressAsyncHandler(
     const user = await User.findOne({ prvKey: prvKey });
     const tokens: TokenData[] = await Token.find({ prvKey: prvKey });
     const trade: TradeData[] = await Trade.find({ prvKey: prvKey });
+    console.log("User: ", user)
+    console.log("Tokens: ", tokens)
+    console.log("Trade: ", trade)
     const solBalance = user?.solBalance ?? 0; // Ensure solBalance is always a number
     const solPrice = await getSolPrice(); // Fetch Solana price in USD
     // console.log(solBalance,"sol bal")
