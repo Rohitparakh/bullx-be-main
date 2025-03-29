@@ -371,11 +371,11 @@ export const getTrendingTokens = expressAsyncHandler(
       const timeInSeconds = Number(timeframe) || 300; // Default: last 5 minutes
 
       // Timestamp for filtering recent tokens
-      const timestamp = Math.floor(Date.now() / 1000) - timeInSeconds;
+      // const timestamp = Math.floor(Date.now() / 1000) - timeInSeconds;
       console.log(timeframe)
-      console.log(timestamp)
+      // console.log(timestamp)
       let data = await bullxGraphql("tokens", "", {
-        poolCreationBlockTimestamp: timestamp, // ✅ Pass timestamp directly
+        // poolCreationBlockTimestamp: timestamp, // ✅ Pass timestamp directly
         volume: { min: 300000 },
         marketcap: {min: 100000},
         liquidity: { min: 25000 },
