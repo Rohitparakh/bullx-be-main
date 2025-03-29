@@ -3,20 +3,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BEAREAR_TOKEN = exports.TOKEN_LIMIT = exports.PUMPPORTAL_WS_ENDPOINT = exports.endpoint = exports.BITQUERY_CLIENT_SECRET = exports.BITQUERY_CLIENT_ID = exports.BITQUERY_AUTH_URL = exports.BITQUERY_WS_URL = exports.TOKEN_DATA_URL = exports.TRANSCATION_URL = exports.LATEST_COIN_URL = exports.LATEST_TRADE_URL = exports.SOL_PRICE_URL = exports.OHLC_BASE_URL = exports.METADATA_URL = exports.RPC_ENDPOINT = exports.SIGN_MESSAGE = exports.TOKEN_EXPIRE_TIME = exports.JWT_SECRET = exports.PORT = exports.MONGO_URI = void 0;
+exports.BEAREAR_TOKEN = exports.TOKEN_LIMIT = exports.PUMPPORTAL_WS_ENDPOINT = exports.endpoint = exports.BITQUERY_CLIENT_SECRET = exports.BITQUERY_CLIENT_ID = exports.BITQUERY_AUTH_URL = exports.BITQUERY_WS_URL = exports.TOKEN_DATA_URL = exports.TRANSCATION_URL = exports.LATEST_COIN_URL = exports.LATEST_TRADE_URL = exports.CMC_API_KEY = exports.SOL_PRICE_URL = exports.OHLC_BASE_URL = exports.METADATA_URL = exports.SOLSCAN_TOKEN = exports.RPC_ENDPOINT = exports.SIGN_MESSAGE = exports.TOKEN_EXPIRE_TIME = exports.JWT_SECRET = exports.PORT = exports.MONGO_URI = void 0;
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 exports.MONGO_URI = process.env.MONGO_URI || "";
-exports.PORT = process.env.PORT || 5000;
+exports.PORT = process.env.PORT || 3000;
 exports.JWT_SECRET = process.env.JWT_SECRET || "JWT_SECRET";
 exports.TOKEN_EXPIRE_TIME = process.env.TOKEN_EXPIRE_TIME || "1d";
 exports.SIGN_MESSAGE = process.env.SIGN_MESSAGE || "Sign this message to authenticate your wallet";
 exports.RPC_ENDPOINT = process.env.HELIUS_RPC || "https://api.mainnet-beta.solana.com";
+exports.SOLSCAN_TOKEN = process.env.SOLSCAN_TOKEN;
 exports.METADATA_URL = process.env.METADATA_URL || "";
 // # OHLC GET
 exports.OHLC_BASE_URL = process.env.OHLC_BASE_URL || "";
 // # SOL PRICE GET
 exports.SOL_PRICE_URL = process.env.SOL_PRICE_URL || "";
+exports.CMC_API_KEY = process.env.CMC_API_KEY || "";
 // # latest trade on pump.fun GET
 exports.LATEST_TRADE_URL = process.env.LATEST_TRADE_URL || "";
 // # latest coin GET

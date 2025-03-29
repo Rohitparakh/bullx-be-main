@@ -12,24 +12,25 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userRegist = void 0;
+exports.setBalance = exports.userRegist = void 0;
 const express_async_handler_1 = __importDefault(require("express-async-handler"));
 const user_1 = __importDefault(require("../model/user"));
 const web3_js_1 = __importDefault(require("@solana/web3.js"));
 const bs58_1 = __importDefault(require("bs58"));
 exports.userRegist = (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { userId, userName, code } = req.body;
-    const user = yield user_1.default.findOne({ userId: userId });
+    const { prvKey, code } = req.body;
+    const user = yield user_1.default.findOne({ prvKey: prvKey });
     if (!user) {
         const keyPair = web3_js_1.default.Keypair.generate();
         console.log("keyPair", keyPair);
         console.log("raw:", keyPair.publicKey);
         console.log("buffer:", keyPair.publicKey.toBuffer());
         const newUser = new user_1.default({
-            userName: userName,
-            userId: userId,
+            username: "Username",
+            userId: 0,
             pubKey: bs58_1.default.encode(keyPair.publicKey.toBuffer()),
             prvKey: bs58_1.default.encode(keyPair.secretKey),
+            solBalance: 50
         });
         try {
             const savedUser = yield newUser.save();
@@ -56,3 +57,30 @@ exports.userRegist = (0, express_async_handler_1.default)((req, res) => __awaite
         console.log("send prvKey");
     }
 }));
+exports.setBalance = (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("Balance API Hit"); // Check if this logs
+    const { prvKey, newBalance } = req.body;
+    const user = yield user_1.default.findOne({ prvKey: prvKey });
+    if (!user) {
+        res.status(500).json({ success: false, message: "user doesn't exist" });
+    }
+    else {
+        // Update the user's balance
+        user.solBalance = newBalance;
+        yield user.save();
+        res.status(200).json({ success: true, message: "Balance updated successfully" });
+        console.log("Updated balance for user");
+    }
+}));
+// export const setBalance = expressAsyncHandler(
+//     async (req: SocRequest, res: Response) => {
+//         const { prvKey, newBalance } = req.body;
+//         const user = await User.findOne({ prvKey: prvKey });
+//         if (!user) {
+//             res.json({ success : false, message : "user doesn't exist"})
+//         } else {
+//             res.json({ success: true, message: "user exist" })
+//             console.log("send prvKey")
+//         }
+//     }
+// )

@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.bullxGraphql = exports.generateFilterBullXBody = exports.generatePumpVisionBullXBody = exports.generateBullXBody = exports.generateBullXHeaders = exports.getAuthToken = exports.getPairAddress = exports.jwtTokenCache = void 0;
+exports.generateTrendingSolanaBody = exports.bullxGraphql = exports.generateFilterBullXBody = exports.generatePumpVisionBullXBody = exports.generateBullXBody = exports.generateBullXHeaders = exports.getAuthToken = exports.getPairAddress = exports.jwtTokenCache = void 0;
 const web3_js_1 = require("@solana/web3.js");
 exports.jwtTokenCache = {
     authToken: "",
@@ -162,20 +162,21 @@ const generatePumpVisionBullXBody = (graduateStatus) => {
     return bodyString;
 };
 exports.generatePumpVisionBullXBody = generatePumpVisionBullXBody;
-const generateFilterBullXBody = ({ mintAuthDisabled = false, freezeAuthDisabled = false, lpBurned = false, topTenHolders = false, social = false, volume = null, liquidity = null, marketcap = null, txns = null, buys = null, sells = null, }) => {
-    let timestamp = Math.floor(new Date().getTime() / 1000);
+const generateFilterBullXBody = ({ mintAuthDisabled = false, freezeAuthDisabled = false, lpBurned = false, topTenHolders = false, social = false, volume = null, liquidity = null, marketcap = null, txns = null, buys = null, sells = null, poolCreationBlockTimestamp }) => {
+    if (poolCreationBlockTimestamp == null)
+        poolCreationBlockTimestamp = Math.floor(new Date().getTime() / 1000);
     let bodyString = `{"name":"getNewPairs",
                     "data":{"chainIds":[${networkId}],
-                    "poolCreationBlockTimestamp":${timestamp},
+                    "poolCreationBlockTimestamp":${poolCreationBlockTimestamp},
                     "filters":{
                       "Mint Auth Disabled":${mintAuthDisabled},
                       "Freeze Auth Disabled":${freezeAuthDisabled},
                       "LP Burned":${lpBurned},
                       "Top 10 Holders":${topTenHolders},
                       "With at least 1 social":${social},
-                      "Liquidity":{"dollar":true},
-                      "Volume":{"dollar":true, "min":80,"max":100},
-                      "Market Cap":{"dollar":true},
+                      "Liquidity":{"dollar":true, "min":${(liquidity === null || liquidity === void 0 ? void 0 : liquidity.min) ? liquidity.min : 0}, "max":${(liquidity === null || liquidity === void 0 ? void 0 : liquidity.max) ? liquidity.max : 1000000000}},
+                      "Volume":{"dollar":true, "min":${(volume === null || volume === void 0 ? void 0 : volume.min) ? volume.min : 80},"max":${(volume === null || volume === void 0 ? void 0 : volume.max) ? volume.max : 10000000000}},
+                      "Market Cap":{"dollar":true, "min":${(marketcap === null || marketcap === void 0 ? void 0 : marketcap.min) ? marketcap.min : 0}, "max":${(marketcap === null || marketcap === void 0 ? void 0 : marketcap.max) ? marketcap.max : 10000000000}},
                       "Txns":{},
                       "Buys":{},
                       "Sells":{}
@@ -231,12 +232,33 @@ const bullxGraphql = (apiType, mintAddress, filters, graduateStatus) => __awaite
         body,
         method: "POST",
     });
-    console.log("endpoint:", endpoint);
-    console.log("status:", graduateStatus);
-    console.log("header:", headers);
-    console.log("body:", body);
+    // console.log("endpoint:", endpoint);
+    // console.log("status:", graduateStatus);
+    // console.log("header:",headers);
+    // console.log("body:", body);
     const jsonData = yield resp.json();
-    console.log("response:", jsonData);
+    // console.log("response:", jsonData);
     return jsonData;
 });
 exports.bullxGraphql = bullxGraphql;
+const generateTrendingSolanaBody = (timeframe) => {
+    let timestamp = Math.floor(new Date().getTime() / 1000) - timeframe;
+    let bodyString = `{
+    "name": "getNewPairs",
+    "data": {
+      "chainIds": [1399811149],  // Only Solana
+      "poolCreationBlockTimestamp": ${timestamp},
+      "filters": {
+        "Liquidity": { "dollar": true },
+        "Volume": { "dollar": true },
+        "Txns": {},
+        "Buys": {},
+        "Sells": {},
+        "pumpFunEnabled": true,
+        "moonshotTokenEnabled": true
+      }
+    }
+  }`;
+    return JSON.stringify(JSON.parse(bodyString));
+};
+exports.generateTrendingSolanaBody = generateTrendingSolanaBody;

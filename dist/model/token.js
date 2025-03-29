@@ -25,7 +25,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const TokenDataSchema = new mongoose_1.default.Schema({
-    userId: { type: String, required: true },
+    prvKey: { type: String, required: true },
     mint: { type: String, required: true },
     name: { type: String, required: true },
     symbol: { type: String, required: true },
