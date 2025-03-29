@@ -183,6 +183,10 @@ export function calculatePumpCurvePrice(curveState: PumpCurveState): number {
 
 export const getSolPrice = async () => {
   const url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest';
+  console.log("SOL PRICE URL")
+  console.log(SOL_PRICE_URL)
+  console.log("CMC_API_KEY")
+  console.log(CMC_API_KEY)
 
   try {
     const { data } = await axios.get(SOL_PRICE_URL);
