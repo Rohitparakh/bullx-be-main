@@ -69,6 +69,7 @@ const safeEnvVars = Object.fromEntries(
 );
 
 console.log(safeEnvVars);
+console.log("All ENV Variables:", process.env);
 
 // ✅ Middleware to set CORS Headers (Extra Protection)
 app.use((req: SocRequest, res: Response, next: NextFunction) => {
