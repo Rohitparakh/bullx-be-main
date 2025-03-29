@@ -99,7 +99,7 @@ mongoose
   .connect(process.env.MONGO_URI as string)
   .then(() => {
     console.log("Connected to the database! ❤️");
-    console.log("Solscan API Key:", process.env.SOLSCAN_API_KEY);
+    // console.log("Solscan API Key:", process.env.SOLSCAN_API_KEY);
 
     server.listen(PORT, () => {
       console.log(`Server listening on port ${PORT} 🚀`);

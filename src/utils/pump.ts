@@ -10,6 +10,7 @@ import {
   SOL_PRICE_URL,
   CMC_API_KEY,
   TRANSCATION_URL,
+  SOLSCAN_TOKEN
 } from "../config";
 import axios from "axios";
 import { formatNumber, getMetadata } from "./solana";
@@ -804,11 +805,11 @@ export const fetchTokenData = expressAsyncHandler(
     try {
       // Fetch Token Data from Solscan API
 
-      
+      console.log(SOLSCAN_TOKEN)
       const requestOptions = {
         method: "GET",
         headers: {
-          "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjcmVhdGVkQXQiOjE3MjM2Nzk3MDgxOTgsImVtYWlsIjoiZHJlYW15dGdib3RAZ21haWwuY29tIiwiYWN0aW9uIjoidG9rZW4tYXBpIiwiYXBpVmVyc2lvbiI6InYyIiwiaWF0IjoxNzIzNjc5NzA4fQ.qEG3q2DSX_i60f8eNhAZ_XEQgmbRHZmQPgY4_7RhZQU"
+          "token": `${SOLSCAN_TOKEN}`
         }
       };
 

@@ -10,6 +10,9 @@ export const SIGN_MESSAGE =
 export const RPC_ENDPOINT =
   process.env.HELIUS_RPC || "https://api.mainnet-beta.solana.com";
 
+  export const SOLSCAN_TOKEN =
+  process.env.SOLSCAN_TOKEN;
+
 export const METADATA_URL = process.env.METADATA_URL || "";
 // # OHLC GET
 export const OHLC_BASE_URL = process.env.OHLC_BASE_URL || "";
