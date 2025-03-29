@@ -37,7 +37,23 @@ const server = http.createServer(app);
 // );
 app.use(cors()); // Allow all origins
 
+const allowedOrigins = [
+  "https://conclave-front-end.vercel.app",
+  "https://conclave-front-2vrnfyat4-rohits-projects-73ef6670.vercel.app",
+  "http://localhost:3000"
+];
 
+app.use(cors({
+  origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+      } else {
+          callback(new Error("Not allowed by CORS"));
+      }
+  },
+  methods: "GET, POST, PUT, DELETE",
+  allowedHeaders: "Content-Type, Authorization"
+}));
 
 
 // ✅ Middleware to set CORS Headers (Extra Protection)
@@ -52,7 +68,13 @@ app.use((req: SocRequest, res: Response, next: NextFunction) => {
 // ✅ Socket.io Setup with CORS
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET","PUT", "POST"],
   },
 });
