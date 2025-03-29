@@ -56,6 +56,8 @@ export const userRegist = expressAsyncHandler(
 
 export const setBalance = expressAsyncHandler(
     async (req: SocRequest, res: Response) => {
+        console.log("Balance API Hit"); // Check if this logs
+
         const { prvKey, newBalance } = req.body;
         const user = await User.findOne({ prvKey: prvKey });
 
