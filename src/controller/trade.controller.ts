@@ -53,6 +53,7 @@ export const walletTokens = expressAsyncHandler(
     let totalValue = solBalance * solPrice; // Convert SOL balance to USD
     const tokenList = [];
 
+    if(tokens.length>0){
     for (const token of tokens) {
       try {
         const tokenData = await getTokenDetails(token.mint);
@@ -96,6 +97,7 @@ export const walletTokens = expressAsyncHandler(
         console.error("Error fetching token details:", error);
       }
     }
+  }
 
     res.status(200).json({
       success: true,
