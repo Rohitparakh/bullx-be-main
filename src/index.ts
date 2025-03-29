@@ -28,13 +28,16 @@ const app = express();
 const server = http.createServer(app);
 
 // ✅ CORS Configuration: Allow All Origins
-app.use(
-  cors({
-    origin: "*", // Allows all origins
-    methods: ["GET", "POST", "PUT", "DELETE"], // Allowed HTTP methods
-    allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
-  })
-);
+// app.use(
+//   cors({
+//     origin: "*", // Allows all origins
+//     methods: ["GET", "POST", "PUT", "DELETE"], // Allowed HTTP methods
+//     allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
+//   })
+// );
+app.use(cors()); // Allow all origins
+
+
 
 // ✅ Middleware to set CORS Headers (Extra Protection)
 app.use((req: SocRequest, res: Response, next: NextFunction) => {
