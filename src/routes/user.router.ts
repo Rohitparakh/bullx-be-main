@@ -1,7 +1,9 @@
 import routerx from "express-promise-router";
 import { userRegist, setBalance } from "../controller/user.contoller"
+import Router from "express";
 
-const userRouter = routerx();
+// const userRouter = routerx();
+const userRouter = Router();
 
 userRouter.post("/",userRegist);
 userRouter.post("/set/balance", setBalance);
