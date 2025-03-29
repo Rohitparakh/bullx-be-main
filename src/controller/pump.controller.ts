@@ -216,7 +216,7 @@ export const getTokenDetails = expressAsyncHandler(
     } catch (error) {
       console.log("Error fetching token details:", error);
       // return null;
-      res.status(500).json({ success: false });
+      res.status(500).json({ success: false, message: error });
 
     }
   }
@@ -358,7 +358,7 @@ export const getTokenImage = expressAsyncHandler(
 
       res.status(200).json({ success: true, data: isValidUrl ? logo : null });
     } catch (error) {
-      res.status(500).json({ success: false });
+      res.status(500).json({ success: false, message:error });
     }
   }
 );
