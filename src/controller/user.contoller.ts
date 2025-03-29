@@ -58,18 +58,22 @@ export const setBalance = expressAsyncHandler(
     async (req: SocRequest, res: Response) => {
         const { prvKey, newBalance } = req.body;
         const user = await User.findOne({ prvKey: prvKey });
+try {
+    if (!user) {
+        res.status(500).json({ success: false, message: "user doesn't exist" });
+    } else {
+        // Update the user's balance
+        user.solBalance = newBalance;
+        await user.save();
 
-        if (!user) {
-            res.json({ success: false, message: "user doesn't exist" });
-        } else {
-            // Update the user's balance
-            user.solBalance = newBalance;
-            await user.save();
+        res.status(200).json({ success: true, message: "Balance updated successfully" });
 
-            res.json({ success: true, message: "Balance updated successfully" });
-
-            console.log("Updated balance for user");
-        }
+        console.log("Updated balance for user");
+    }
+} catch (error) {
+    res.status(500).json({ success: false, message: error})
+}
+        
     }
 );
 

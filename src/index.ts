@@ -53,7 +53,7 @@ app.use((req: SocRequest, res: Response, next: NextFunction) => {
 const io = new Server(server, {
   cors: {
     origin: "*",
-    methods: ["GET", "POST"],
+    methods: ["GET","PUT", "POST"],
   },
 });
 
