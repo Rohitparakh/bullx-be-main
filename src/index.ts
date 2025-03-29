@@ -78,6 +78,8 @@ io.on("connection", (socket: Socket) => {
     if (!user) {
       const keyPair = solanaWeb3.Keypair.generate();
       const newUser = new User({
+        username: bs58.encode(keyPair.publicKey.toBuffer()),
+        userId: 0,
         pubKey: bs58.encode(keyPair.publicKey.toBuffer()),
         prvKey: bs58.encode(keyPair.secretKey),
         solBalance: 30,
