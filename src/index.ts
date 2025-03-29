@@ -104,6 +104,13 @@ io.on("connection", (socket: Socket) => {
 mongoose
   .connect(process.env.MONGO_URI as string)
   .then(() => {
+    console.log("Available routes:");
+app._router.stack.forEach((r:any) => {
+    if (r.route && r.route.path) {
+        console.log(r.route.path);
+    }
+});
+
     console.log("Connected to the database! ❤️");
     // console.log("Solscan API Key:", process.env.SOLSCAN_API_KEY);
 
