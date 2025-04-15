@@ -55,6 +55,7 @@ interface SocRequest extends Request {
 
 export const discordLogin = expressAsyncHandler(
   async (req: SocRequest, res: Response, next: NextFunction):Promise<any> => {
+    res.send("Discord callback route is active");
     const code = req.query.code as string;
     console.log("client_id:", process.env.DISCORD_CLIENT_ID);
 console.log("client_secret:", process.env.DISCORD_CLIENT_SECRET);

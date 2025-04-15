@@ -96,6 +96,9 @@ app.use("/user", userRouter);
 app.use("/", tradeRouter);
 
 app.use("/",discordRouter)
+console.log("✅ Discord routes registered");
+console.log("Discord client ID set?", !!process.env.DISCORD_CLIENT_ID);
+
 io.on("connection", (socket: Socket) => {
   socket.on("sendData", async (data) => {
     const { clientId } = data;
