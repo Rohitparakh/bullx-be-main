@@ -1,9 +1,9 @@
-import { Router } from "express";
+import express  from "express";
 import { trade, walletTokens, priceFetchinUSD } from "../controller/trade.controller";
 import { fetchBondingCurve } from "../utils/pump";
 import { fetchTokenData } from "../utils/pump";
 
-const router = Router();
+const router = express.Router();
 
 router.post("/trade", trade);
 router.post("/wallet", walletTokens);

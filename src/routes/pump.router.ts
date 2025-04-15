@@ -1,4 +1,4 @@
-import Router from "express";
+import express from "express";
 import {
   getPumpVision,
   getTrendingTokens,
@@ -10,7 +10,7 @@ import {
 
 
 
-const router = Router();
+const router = express.Router();
 
 router.get("/trending", getTrendingTokens);
 router.get("/recent/new-tokens", getTokenList);

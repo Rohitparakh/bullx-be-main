@@ -235,9 +235,58 @@ app._router.stack.forEach((r:any) => {
     }
 });
 
+// function listRoutes(app:any) {
+//   console.log("📦 Registered Routes:");
+//   app._router.stack.forEach((middleware:any) => {
+//     if (middleware.route) {
+//       // Routes registered directly on the app
+//       console.log(`${Object.keys(middleware.route.methods).join(", ").toUpperCase()} ${middleware.route.path}`);
+//     } else if (middleware.name === "router") {
+//       // Routes added via router middleware
+//       middleware.handle.stack.forEach((handler:any) => {
+//         const route = handler.route;
+//         if (route) {
+//           console.log(`${Object.keys(route.methods).join(", ").toUpperCase()} ${route.path}`);
+//         }
+//       });
+//     }
+//   });
+// }
+// function listRouterRoutes(router:any, label = "") {
+//   console.log(`🔍 Routes for ${label || "router"}:`);
+//   router?.stack?.forEach((layer:any) => {
+//     if (layer.route && layer.route.path) {
+//       const method = Object.keys(layer.route.methods)[0].toUpperCase();
+//       console.log(`${method} ${layer.route.path}`);
+//     }
+//   });
+// }
+// console.log("discord router")
+// listRouterRoutes(discordRouter, "Discord Router");
+
     console.log("Connected to the database! ❤️");
     // console.log("Solscan API Key:", process.env.SOLSCAN_API_KEY);
 
+   
+    function listAllRoutes(app:any) {
+      console.log("📦 Registered Routes:");
+      app._router.stack.forEach((middleware:any) => {
+        if (middleware.route) {
+          const methods = Object.keys(middleware.route.methods).map(m => m.toUpperCase());
+          console.log(`${methods.join(", ")} ${middleware.route.path}`);
+        } else if (middleware.name === "router") {
+          middleware.handle.stack.forEach((handler:any) => {
+            if (handler.route) {
+              const methods = Object.keys(handler.route.methods).map(m => m.toUpperCase());
+              console.log(`${methods.join(", ")} ${handler.route.path}`);
+            }
+          });
+        }
+      });
+    }
+    
+    listAllRoutes(app);
+    
 console.log("🔍 Checking Environment Variables:");
 
 const envVars = {
@@ -260,8 +309,7 @@ const envVars = {
   BITQUERY_CLIENT_SECRET: process.env.BITQUERY_CLIENT_SECRET,
   JWT_SECRET: process.env.JWT_SECRET,
   PUMPPORTAL_WS_ENDPOINT: process.env.PUMPPORTAL_WS_ENDPOINT,
-  SOLSCAN_TOKEN: process.env.SOLSCAN_TOKEN,
-  
+  SOLSCAN_TOKEN: process.env.SOLSCAN_TOKEN,  
 DISCORD_CLIENT_ID:process.env.DISCORD_CLIENT_ID,
 DISCORD_CLIENT_SECRET:process.env.DISCORD_CLIENT_SECRET,
 DISCORD_REDIRECT_URI:process.env.DISCORD_REDIRECT_URI,
