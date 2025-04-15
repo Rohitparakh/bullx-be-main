@@ -258,6 +258,11 @@ const envVars = {
   JWT_SECRET: process.env.JWT_SECRET,
   PUMPPORTAL_WS_ENDPOINT: process.env.PUMPPORTAL_WS_ENDPOINT,
   SOLSCAN_TOKEN: process.env.SOLSCAN_TOKEN,
+  
+DISCORD_CLIENT_ID:process.env.DISCORD_CLIENT_ID,
+DISCORD_CLIENT_SECRET:process.env.DISCORD_CLIENT_SECRET,
+DISCORD_REDIRECT_URI:process.env.DISCORD_REDIRECT_URI,
+FRONTEND_URL:process.env.FRONTEND_URL,
 };
 
 // Hide sensitive values (optional)
@@ -265,9 +270,9 @@ const safeEnvVars = Object.fromEntries(
   Object.entries(envVars).map(([key, value]) => [key, value ? "Exists ✅" : "Missing ❌"])
 );
 
-// console.log(safeEnvVars);
-// console.log("All ENV Variables:");
-// console.log(process.env);
+console.log(safeEnvVars);
+console.log("All ENV Variables:");
+console.log(process.env);
 
     server.listen(PORT, () => {
       console.log(`Server listening on port ${PORT} 🚀`);
