@@ -17,6 +17,8 @@ import truncateRouter from "./routes/truncate.router";
 import User, { UserData } from "./model/user";
 import pumpRouter from "./routes/pump.router";
 import expressAsyncHandler from "express-async-handler";
+import axios from "axios";
+import discordRouter from "./routes/discordRouter";
 
 interface SocRequest extends Request {
   io?: any;
@@ -40,7 +42,8 @@ app.use(cors()); // Allow all origins
 const allowedOrigins = [
   "https://conclave-front-end.vercel.app",
   "https://conclave-front-2vrnfyat4-rohits-projects-73ef6670.vercel.app",
-  "http://localhost:3000"
+  "http://localhost:3000",
+  "http://localhost:3001",
 ];
 
 app.use(cors({
@@ -92,6 +95,7 @@ app.get("/health-check", (req: Request, res: Response) => {
 app.use("/user", userRouter);
 app.use("/", tradeRouter);
 
+app.use("/",discordRouter)
 io.on("connection", (socket: Socket) => {
   socket.on("sendData", async (data) => {
     const { clientId } = data;
@@ -123,6 +127,7 @@ io.on("connection", (socket: Socket) => {
   });
 });
 
+// console.log(process.env.MONGO_URI)
 mongoose
   .connect(process.env.MONGO_URI as string)
   .then(() => {
@@ -166,9 +171,9 @@ const safeEnvVars = Object.fromEntries(
   Object.entries(envVars).map(([key, value]) => [key, value ? "Exists ✅" : "Missing ❌"])
 );
 
-console.log(safeEnvVars);
-console.log("All ENV Variables:");
-console.log(process.env);
+// console.log(safeEnvVars);
+// console.log("All ENV Variables:");
+// console.log(process.env);
 
     server.listen(PORT, () => {
       console.log(`Server listening on port ${PORT} 🚀`);
@@ -179,6 +184,7 @@ console.log(process.env);
     process.exit(1);
   });
 
+  
 
   // import { Request, Response, NextFunction } from "express";
 // import http from "http";
