@@ -41,6 +41,7 @@ app.use(cors()); // Allow all origins
 
 const allowedOrigins = [
   "https://conclave-front-end.vercel.app",
+  "https://conclave-backend.onrender.com",
   "https://conclave-front-2vrnfyat4-rohits-projects-73ef6670.vercel.app",
   "http://localhost:3000",
   "http://localhost:3001",
