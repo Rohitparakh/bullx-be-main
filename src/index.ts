@@ -95,7 +95,7 @@ app.get("/health-check", (req: Request, res: Response) => {
 app.use("/user", userRouter);
 app.use("/", tradeRouter);
 
-app.use("/",discordRouter)
+app.use("/api",discordRouter)
 console.log("✅ Discord routes registered");
 console.log("Discord client ID set?", !!process.env.DISCORD_CLIENT_ID);
 
