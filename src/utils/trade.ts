@@ -7,7 +7,7 @@ import Trade from "../model/trade";
 export const sell = async (
   mint: string,
   amount: number,
-  prvKey: string
+  id: string
 ) => {
   const tokenData = await getTokenDetails(mint);
   if (!tokenData) return { success: false, msg: "No token detail" };
@@ -33,7 +33,7 @@ export const sell = async (
   const { name, symbol }: { name: string; symbol: string } = tokenData;
 
   let newSolBalance: number = 0;
-  const user: UserData | null = await User.findOne({ prvKey: prvKey });
+  const user: UserData | null = await User.findOne({ id: id });
   if (user) {
     const solBalance: number = user.solBalance;
     newSolBalance = solBalance + tokenPriceSOL * amount;
@@ -43,7 +43,7 @@ export const sell = async (
     return { success: false, msg: "No user" };
   }
 
-  const token = await Token.findOne({ prvKey: prvKey, mint });
+  const token = await Token.findOne({ id: id, mint });
   if (token) {
     const tokenAmount = token.amount;
     const newTokenAmount = Number(tokenAmount) - Number(amount);
@@ -52,7 +52,7 @@ export const sell = async (
       return { success: false, msg: "Insufficient token" };
     try {
       await Token.updateOne(
-        { prvKey: prvKey, mint },
+        { id: id, mint },
         { amount: newTokenAmount, sold }
       );
     } catch (error) {
@@ -66,7 +66,7 @@ export const sell = async (
 
 
   const newTrade = new Trade({
-    prvKey: prvKey,
+    id: id,
     mint,
     name,
     symbol,
@@ -84,7 +84,7 @@ export const sell = async (
 
 
 
-  await User.updateOne({ prvKey: prvKey }, { solBalance: newSolBalance });
+  await User.updateOne({ id: id }, { solBalance: newSolBalance });
   return { success: true };
 };
 
@@ -117,7 +117,7 @@ export const priceFetchUSD = async (address: string): Promise<number | null> => 
 };
 
 
-export const buy = async (mint: string, amount: number, prvKey: string) => {
+export const buy = async (mint: string, amount: number, id: string) => {
   const tokenData = await getTokenDetails(mint);
   if (!tokenData) return { success: false, msg: "No token detail" };
 
@@ -142,7 +142,7 @@ export const buy = async (mint: string, amount: number, prvKey: string) => {
   const { name, symbol }: { name: string; symbol: string } = tokenData;
 
   let newSolBalance: number = 0;
-  const user: UserData | null = await User.findOne({ prvKey: prvKey });
+  const user: UserData | null = await User.findOne({ id: id });
   if (user) {
     const solBalance: number = user.solBalance;
     newSolBalance = solBalance - amount;
@@ -154,7 +154,7 @@ export const buy = async (mint: string, amount: number, prvKey: string) => {
 
   let invested = amount * solPrice;
 
-  const token = await Token.findOne({ prvKey: prvKey, mint });
+  const token = await Token.findOne({ id: id, mint });
   if (token) {
     const tokenAmount = token.amount;
     if (tokenPriceSOL>liquidityPools[0].protocolData.price1 || Number.isNaN(tokenPriceSOL)) {
@@ -176,7 +176,7 @@ export const buy = async (mint: string, amount: number, prvKey: string) => {
     invested += token.invested;
     try {
       await Token.updateOne(
-        { prvKey: prvKey, mint },
+        { id: id, mint },
         { amount: newTokenAmount, invested }
       );
     } catch (error) {
@@ -206,7 +206,7 @@ export const buy = async (mint: string, amount: number, prvKey: string) => {
   // }
     console.log("TokenSOL Price before creating token", tokenPriceSOL)
     const newToken = new Token({
-      prvKey: prvKey,
+      id: id,
       mint,
       name,
       symbol,
@@ -239,7 +239,7 @@ export const buy = async (mint: string, amount: number, prvKey: string) => {
   }
   
   const newTrade = new Trade({
-    prvKey: prvKey,
+    id: id,
     mint,
     name,
     symbol,
@@ -262,6 +262,6 @@ export const buy = async (mint: string, amount: number, prvKey: string) => {
 
 
   
-  await User.updateOne({ prvKey: prvKey }, { solBalance: newSolBalance });
+  await User.updateOne({ id: id }, { solBalance: newSolBalance });
   return { success: true };
 };

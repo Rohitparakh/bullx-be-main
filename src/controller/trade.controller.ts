@@ -24,13 +24,13 @@ export const priceFetchinUSD = expressAsyncHandler(
 
 export const trade = expressAsyncHandler(
   async (req: Request, res: Response) => {
-    const { mint, amount, prvKey, isBuy } = req.body;
+    const { mint, amount, id, isBuy } = req.body;
 
     let result: any;
     if (!isBuy) {
-      result = await sell(mint, amount, prvKey);
+      result = await sell(mint, amount, id);
     } else {
-      result = await buy(mint, amount, prvKey);
+      result = await buy(mint, amount, id);
     }
     if (result.success) {
       res.status(200).json({ success: result.success });
@@ -42,12 +42,12 @@ export const trade = expressAsyncHandler(
 
 export const walletTokens = expressAsyncHandler(async (req: Request, res: Response): Promise<void> => {
   try {
-    const { prvKey } = req.body;
+    const { id } = req.body;
 
     const [user, tokens, trade, solPrice] = await Promise.all([
-      User.findOne({ prvKey }).lean(),
-      Token.find({ prvKey }).lean(),
-      Trade.find({ prvKey }).lean(),
+      User.findOne({ id }).lean(),
+      Token.find({ id }).lean(),
+      Trade.find({ id }).lean(),
       getSolPrice(), // Cached SOL price
     ]);
 

@@ -99,11 +99,11 @@ app.use("/",discordRouter)
 io.on("connection", (socket: Socket) => {
   socket.on("sendData", async (data) => {
     const { clientId } = data;
-    const user: UserData | null = await User.findOne({ pubKey: clientId });
+    const user: UserData | null = await User.findOne({ id: clientId });
 
     if (!user) {
       const keyPair = solanaWeb3.Keypair.generate();
-      const newUser = new User({
+      const newUser = new User({        
         username: "Username",
         userId: 0,
         pubKey: bs58.encode(keyPair.publicKey.toBuffer()),
@@ -113,18 +113,112 @@ io.on("connection", (socket: Socket) => {
 
       try {
         const savedUser = await newUser.save();
-        io.emit("login", {
-          user: savedUser,
-          pubKey: savedUser.pubKey,
-          prvKey: savedUser.prvKey,
-        });
+        // io.emit("login", {
+        //   user: savedUser,
+        //   pubKey: savedUser.pubKey,
+        //   prvKey: savedUser.prvKey,
+        // });
       } catch (error) {
         console.error("Error creating user:", error);
       }
     } else {
-      io.emit("login", { user, pubKey: user.pubKey, prvKey: user.prvKey });
+      // io.emit("login", { user, pubKey: user.pubKey, prvKey: user.prvKey });
     }
   });
+});
+
+
+io.on("connection", (socket: Socket) => {
+  socket.on("sendData", async (data) => {
+    const { id } = data;
+    console.log("clientId");
+    console.log(data);
+    if (!id) {
+      console.error("No clientId provided in sendData");
+      return;
+    }
+
+    try {
+      let user: UserData | null = await User.findOne({ id: id });
+
+      if (!user) {
+        const keyPair = solanaWeb3.Keypair.generate();
+        const newUser = new User({
+          username: "NewUser",
+          id: id,
+          pubKey: bs58.encode(keyPair.publicKey.toBuffer()),
+          prvKey: bs58.encode(keyPair.secretKey),
+          solBalance: 30,
+        });
+
+        const savedUser = await newUser.save();
+
+        console.log("✨ New user created and emitting login to client");
+        socket.emit("login", {
+          user: savedUser,
+          id: savedUser.id,
+        });
+      } else {
+        console.log("🔁 Existing user found, emitting login to client");
+        socket.emit("login", {
+          user,
+          id: user.id,
+        });
+      }
+    } catch (error) {
+      console.error("Error handling sendData:", error);
+    }
+  });
+});
+
+io.on("connection", (socket: Socket) => {
+  // socket.on("sendData", async (data) => {
+  //   const { clientId } = data;
+
+  //   if (!clientId) {
+  //     console.error("No clientId provided in sendData");
+  //     return;
+  //   }
+
+  //   try {
+  //     console.log("clientId")
+  //     console.log(clientId)
+  //     let user: UserData | null = await User.findOne({ id: clientId });
+
+  //     if (!user) {
+  //       const keyPair = solanaWeb3.Keypair.generate();
+  //       const newUser = new User({
+  //         username: "NewUser",
+  //         id: clientId,
+  //         pubKey: bs58.encode(keyPair.publicKey.toBuffer()),
+  //         prvKey: bs58.encode(keyPair.secretKey),
+  //         solBalance: 30,
+  //       });
+
+  //       const savedUser = await newUser.save();
+
+  //       console.log("✨ New user created and emitting login to client");
+  //       socket.emit("login", {
+  //         user: savedUser,
+  //         id: savedUser.id,
+  //       });
+  //     } else {
+  //       console.log("🔁 Existing user found, emitting login to client");
+  //       socket.emit("login", {
+  //         user,
+  //         id: user.id,
+  //       });
+  //     }
+  //   } catch (error) {
+  //     console.error("Error handling sendData:", error);
+  //   }
+  // });
+});
+
+
+app.use((req, res, next) => {
+  (req as any).io = io;
+  next();
 });
 
 // console.log(process.env.MONGO_URI)

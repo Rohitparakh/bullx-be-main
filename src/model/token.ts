@@ -1,7 +1,7 @@
 import mongoose, { Model, model, Schema } from "mongoose";
 
 export interface TokenData {
-  prvKey: string;
+  id: string;
   mint: string;
   name: string;
   symbol: string;
@@ -13,7 +13,7 @@ export interface TokenData {
 interface TokenDataModel extends Model<TokenData> {}
 
 const TokenDataSchema: Schema<TokenData> = new mongoose.Schema({
-  prvKey: { type: String, required: true },
+  id: { type: String, required: true },
   mint: { type: String, required: true },
   name: { type: String, required: true },
   symbol: { type: String, required: true },

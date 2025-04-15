@@ -1,7 +1,7 @@
 import mongoose, { Model, model, Schema, Types } from "mongoose";
 
 export interface TradeData {
-  prvKey: string;
+  id: string;
   mint: string;
   name: string;
   symbol: string;
@@ -16,7 +16,7 @@ export interface TradeData {
 interface TradeModel extends Model<TradeData> {}
 
 const TradeSchema: Schema = new Schema({
-  prvKey: { type: String, required: true },
+  id: { type: String, required: true },
   mint: { type: String, required: true },
   name: { type: String, required: true },
   symbol: { type: String, required: true },
