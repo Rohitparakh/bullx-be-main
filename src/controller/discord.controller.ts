@@ -73,7 +73,7 @@ console.log("redirect_uri:", "http://localhost:3002/auth/discord/callback");
       params.append("client_secret", process.env.DISCORD_CLIENT_SECRET || "");
       params.append("grant_type", "authorization_code");
       params.append("code", code); // Already cast to string
-      params.append("redirect_uri", "http://localhost:3002/auth/discord/callback");
+      params.append("redirect_uri", `${process.env.DISCORD_REDIRECT_URI}`);
       params.append("scope", "identify email");
 
       // Send request to Discord API for the token
