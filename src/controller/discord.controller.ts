@@ -153,7 +153,7 @@ sendData(req.io, "sendData", {
 
       // 4. Redirect user to frontend with user info or token
       res.redirect(
-        `http://localhost:3000/get-started?user=${encodeURIComponent(
+        `${process.env.FRONTEND_URL}/get-started?user=${encodeURIComponent(
           JSON.stringify(discordUser)
         )}`
       );
