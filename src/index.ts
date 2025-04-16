@@ -18,7 +18,7 @@ import User, { UserData } from "./model/user";
 import pumpRouter from "./routes/pump.router";
 import expressAsyncHandler from "express-async-handler";
 import axios from "axios";
-import discordRouter from "./routes/discordRouter";
+import discordRouter from "./routes/discord.router";
 
 interface SocRequest extends Request {
   io?: any;
