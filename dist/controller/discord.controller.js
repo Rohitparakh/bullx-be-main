@@ -50,7 +50,7 @@ const user_1 = __importDefault(require("../model/user"));
 //   });
 exports.discordLogin = (0, express_async_handler_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    res.send("Discord callback route is active");
+    // res.send("Discord callback route is active");
     const code = req.query.code;
     console.log("client_id:", process.env.DISCORD_CLIENT_ID);
     console.log("client_secret:", process.env.DISCORD_CLIENT_SECRET);
