@@ -181,28 +181,19 @@ export function calculatePumpCurvePrice(curveState: PumpCurveState): number {
   );
 }
 
-export const getSolPrice = async () => {
-  const url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest';
-  console.log("SOL PRICE URL")
-  console.log(SOL_PRICE_URL)
-  console.log("CMC_API_KEY")
-  console.log(CMC_API_KEY)
-
+export const getSolPrice = async (): Promise<number> => {
   try {
     const { data } = await axios.get(SOL_PRICE_URL);
-    console.log("DATAaaaa", data);
 
-    if (!data?.solPrice || data.solPrice <= 0) {
-      throw new Error("Invalid SOL price, falling back to CoinMarketCap API");
+    const solPrice = data?.solPrice;
+    if (typeof solPrice === 'number' && solPrice > 0) {
+      return solPrice;
     }
-
-    return data.solPrice;
-  } catch (error:any) {
-    // console.error("Error fetching SOL price from primary source:", error.message);
-
-    // Fallback to CoinMarketCap API
+    throw new Error("Invalid SOL price, using fallback");
+  } catch {
+    // Fallback to CoinMarketCap
     try {
-      const response = await axios.get(url, {
+      const response = await axios.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest', {
         params: {
           symbol: 'SOL',
           convert: 'USD',
@@ -212,42 +203,56 @@ export const getSolPrice = async () => {
         },
       });
 
-      const price = response.data.data.SOL.quote.USD.price;
-      console.log(`The current price of Solana (SOL) is $${price.toFixed(2)} USD.`);
-      return price.toFixed(2);
-    } catch (fallbackError:any) {
-      // console.error("Error fetching SOL price from CoinMarketCap:", fallbackError.message);
-      return 0;  // Return 0 if both APIs fail
+      const price = response.data?.data?.SOL?.quote?.USD?.price;
+      return typeof price === 'number' ? price : 0;
+    } catch {
+      return 0;
     }
   }
 };
 
 
 // export const getSolPrice = async () => {
+//   const url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest';
+//   console.log("SOL PRICE URL")
+//   console.log(SOL_PRICE_URL)
+//   console.log("CMC_API_KEY")
+//   console.log(CMC_API_KEY)
+
 //   try {
 //     const { data } = await axios.get(SOL_PRICE_URL);
-//     const url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest';    
-//     console.log("DATAaaaa", data)
-//     if (data.solPrice<=0){
-//         const response = await axios.get(url, {
-//           params: {
-//             symbol: 'SOL',
-//             convert: 'USD',
-//           },
-//           headers: {
-//             'X-CMC_PRO_API_KEY': CMC_API_KEY,
-//           },
-//         });
-    
-//         const price = response.data.data.SOL.quote.USD.price;
-//         console.log(`The current price of Solana (SOL) is $${price.toFixed(2)} USD.`);
-//         return price.toFixed(2);
+//     console.log("DATAaaaa", data);
+
+//     if (!data?.solPrice || data.solPrice <= 0) {
+//       throw new Error("Invalid SOL price, falling back to CoinMarketCap API");
 //     }
+
 //     return data.solPrice;
-//   } catch (error) {
-//     return 0;
+//   } catch (error:any) {
+//     // console.error("Error fetching SOL price from primary source:", error.message);
+
+//     // Fallback to CoinMarketCap API
+//     try {
+//       const response = await axios.get(url, {
+//         params: {
+//           symbol: 'SOL',
+//           convert: 'USD',
+//         },
+//         headers: {
+//           'X-CMC_PRO_API_KEY': CMC_API_KEY,
+//         },
+//       });
+
+//       const price = response.data.data.SOL.quote.USD.price;
+//       console.log(`The current price of Solana (SOL) is $${price.toFixed(2)} USD.`);
+//       return price.toFixed(2);
+//     } catch (fallbackError:any) {
+//       // console.error("Error fetching SOL price from CoinMarketCap:", fallbackError.message);
+//       return 0;  // Return 0 if both APIs fail
+//     }
 //   }
 // };
+
 
 export const getTransactions = async (
   address: string,
