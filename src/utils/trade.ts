@@ -182,233 +182,233 @@ export const priceFetchUSD = async (address: string): Promise<number | null> => 
   }
 };
 
-export const buy = async (mint: string, amount: number, id: string) => {
-  const tokenData = await getTokenDetails(mint);
-  if (!tokenData) return { success: false, msg: "No token detail" };
-
-  const liquidityPools: any[] = Object.values(tokenData.liquidityPools);
-
-  let tokenPriceSOL: number = liquidityPools[0].protocolData.price0;
-  const solPrice = await getSolPrice();
-  let tokenPrice = tokenPriceSOL * solPrice;
-
-  if (
-    tokenPriceSOL > liquidityPools[0].protocolData.price1 ||
-    Number.isNaN(tokenPriceSOL)
-  ) {
-    const tokenPriceUSD = await priceFetchUSD(mint);
-    if (tokenPriceUSD !== null && solPrice !== 0) {
-      tokenPriceSOL = tokenPriceUSD / solPrice;
-      tokenPrice = tokenPriceUSD;
-    } else {
-      console.error(
-        `Invalid token price, cannot compute tokenPriceSOL. ${tokenPriceUSD} ${solPrice}`
-      );
-      return { success: false, msg: "Error fetching token price" };
-    }
-  }
-
-  const { name, symbol }: { name: string; symbol: string } = tokenData;
-
-  const user: UserData | null = await User.findOne({ id: id });
-  if (!user) return { success: false, msg: "No user" };
-
-  const solBalance = user.solBalance;
-  const newSolBalance = solBalance - amount;
-  if (newSolBalance < 0)
-    return { success: false, msg: "Insufficient Sol balance" };
-
-  const token = await Token.findOne({ id: id, mint });
-  const tokenAmountToAdd = Number(amount) / Number(tokenPriceSOL);
-  let invested = amount * solPrice;
-
-  try {
-    if (token) {
-      const newTokenAmount = token.amount + tokenAmountToAdd;
-      invested += token.invested;
-      await Token.updateOne(
-        { id: id, mint },
-        { amount: newTokenAmount, invested }
-      );
-    } else {
-      const newToken = new Token({
-        id,
-        mint,
-        name,
-        symbol,
-        amount: tokenAmountToAdd,
-        invested,
-        sold: 0,
-      });
-      await newToken.save();
-    }
-  } catch (error) {
-    console.error("Token update/save error", error);
-    return { success: false, msg: `Token update error: ${error}` };
-  }
-
-  const newTrade = new Trade({
-    id,
-    mint,
-    name,
-    symbol,
-    priceSol: amount,
-    priceUsd: amount * solPrice,
-    amount: tokenAmountToAdd,
-    tradeType: "BUY",
-  });
-
-  try {
-    await newTrade.save();
-  } catch (error) {
-    console.error("Trade save error", error);
-    return { success: false, msg: `Saving trade error: ${error}` };
-  }
-
-  await User.updateOne({ id }, { solBalance: newSolBalance });
-
-  return { success: true };
-};
-
-
-
 // export const buy = async (mint: string, amount: number, id: string) => {
 //   const tokenData = await getTokenDetails(mint);
 //   if (!tokenData) return { success: false, msg: "No token detail" };
 
 //   const liquidityPools: any[] = Object.values(tokenData.liquidityPools);
-//   // console.log("Token Data:", liquidityPools[0].protocolData);
 
-//   let tokenPriceSOL: number;
-//   let solPrice: number = await getSolPrice(), tokenPrice:number;
-//   // if(liquidityPools[0].protocolData.price0 > liquidityPools[0].protocolData.price1){
-//     // tokenPriceSOL = liquidityPools[0].protocolData.price0 / 1000000000;
-//     // tokenPrice = tokenPriceSOL;
-//   // } else{
-//     tokenPriceSOL = liquidityPools[0].protocolData.price0;    
-//     tokenPrice = tokenPriceSOL * solPrice;
-//   // }
-//   // tokenPriceSOL = !tokenPriceSOL ? liquidityPools[1].protocolData.price1 : tokenPriceSOL;
-  
-//   console.log("tokenPriceSOL", tokenPriceSOL)
-//   console.log("solPrice", solPrice)
-//   console.log("tokenPrice", tokenPrice)
+//   let tokenPriceSOL: number = liquidityPools[0].protocolData.price0;
+//   const solPrice = await getSolPrice();
+//   let tokenPrice = tokenPriceSOL * solPrice;
+
+//   if (
+//     tokenPriceSOL > liquidityPools[0].protocolData.price1 ||
+//     Number.isNaN(tokenPriceSOL)
+//   ) {
+//     const tokenPriceUSD = await priceFetchUSD(mint);
+//     if (tokenPriceUSD !== null && solPrice !== 0) {
+//       tokenPriceSOL = tokenPriceUSD / solPrice;
+//       tokenPrice = tokenPriceUSD;
+//     } else {
+//       console.error(
+//         `Invalid token price, cannot compute tokenPriceSOL. ${tokenPriceUSD} ${solPrice}`
+//       );
+//       return { success: false, msg: "Error fetching token price" };
+//     }
+//   }
 
 //   const { name, symbol }: { name: string; symbol: string } = tokenData;
 
-//   let newSolBalance: number = 0;
 //   const user: UserData | null = await User.findOne({ id: id });
-//   if (user) {
-//     const solBalance: number = user.solBalance;
-//     newSolBalance = solBalance - amount;
-//     if (newSolBalance < 0)
-//       return { success: false, msg: "Insufficient Sol balance" };
-//   } else {
-//     return { success: false, msg: "No user" };
-//   }
+//   if (!user) return { success: false, msg: "No user" };
 
-//   let invested = amount * solPrice;
+//   const solBalance = user.solBalance;
+//   const newSolBalance = solBalance - amount;
+//   if (newSolBalance < 0)
+//     return { success: false, msg: "Insufficient Sol balance" };
 
 //   const token = await Token.findOne({ id: id, mint });
-//   if (token) {
-//     const tokenAmount = token.amount;
-//     if (tokenPriceSOL>liquidityPools[0].protocolData.price1 || Number.isNaN(tokenPriceSOL)) {
-//       let tokenPriceUSD: number | null = await priceFetchUSD(mint);
-//       // console.log("Token Price USD:", tokenPriceUSD);
-    
-//       if (tokenPriceUSD !== null && solPrice !== 0) {
-//         tokenPriceSOL = tokenPriceUSD / solPrice;
-//       } else {
-//         console.error(`Invalid token price, cannot compute tokenPriceSOL. ${tokenPriceUSD} ${solPrice}`);
-//         return { success: false, msg: "Error fetching token price" };
-//       }
-//     }
+//   const tokenAmountToAdd = Number(amount) / Number(tokenPriceSOL);
+//   let invested = amount * solPrice;
 
-//     console.log("Num", amount);
-//     console.log("TPSOL",tokenPriceSOL);
-//     const newTokenAmount =
-//       Number(tokenAmount) + Number(amount) / Number(tokenPriceSOL) ;
-//     invested += token.invested;
-//     try {
+//   try {
+//     if (token) {
+//       const newTokenAmount = token.amount + tokenAmountToAdd;
+//       invested += token.invested;
 //       await Token.updateOne(
 //         { id: id, mint },
 //         { amount: newTokenAmount, invested }
 //       );
-//     } catch (error) {
-//       console.log(error);
-//       return { success: false, msg: `Token update error ${error}` };
-//     }
-//   } else {
-//     console.log(invested, "invested")
-//     console.log(tokenPriceSOL, "tokenPriceSOL")
-//     console.log(Number.isNaN(tokenPriceSOL))
-   
-    
-
-//   // if (tokenPriceSOL>liquidityPools[0].protocolData.price1) {
-//     let tokenPriceUSD: number | null = await priceFetchUSD(mint);
-//     // console.log("Token Price USD:", tokenPriceUSD);
-  
-//     if (tokenPriceUSD !== null && solPrice !== 0) {
-//       tokenPriceSOL = tokenPriceUSD / solPrice;
 //     } else {
-//       console.error(`Invalid token price, cannot compute tokenPriceSOL. ${tokenPriceUSD} ${solPrice}`);
-//       return { success: false, msg: "Error fetching token price" };
-//     }
-
-//     console.log("solPrice USD", solPrice)
-//     console.log("TokenUSD Price before creating token", tokenPriceUSD)
-//   // }
-//     console.log("TokenSOL Price before creating token", tokenPriceSOL)
-//     const newToken = new Token({
-//       id: id,
-//       mint,
-//       name,
-//       symbol,
-//       amount: Number(amount) / Number(tokenPriceSOL),
-//       invested,
-//       sold: 0
-//     });
-//     try {
+//       const newToken = new Token({
+//         id,
+//         mint,
+//         name,
+//         symbol,
+//         amount: tokenAmountToAdd,
+//         invested,
+//         sold: 0,
+//       });
 //       await newToken.save();
-//     } catch (error) {
-//       console.log(error);
-//       return { success: false, msg: `Saving token error: ${amount} ${error}` };
 //     }
+//   } catch (error) {
+//     console.error("Token update/save error", error);
+//     return { success: false, msg: `Token update error: ${error}` };
 //   }
 
-
-
-
-
-//   if (tokenPriceSOL>liquidityPools[0].protocolData.price1) {
-//     let tokenPriceUSD: number | null = await priceFetchUSD(mint);
-//     // console.log("Token Price USD:", tokenPriceUSD);
-  
-//     if (tokenPriceUSD !== null && solPrice !== 0) {
-//       tokenPriceSOL = tokenPriceUSD / solPrice;
-//     } else {
-//       console.error(`Invalid token price, cannot compute tokenPriceSOL. ${tokenPriceUSD} ${solPrice}`);
-//       return { success: false, msg: "Error fetching token price" };
-//     }
-//   }
-  
 //   const newTrade = new Trade({
-//     id: id,
+//     id,
 //     mint,
 //     name,
 //     symbol,
 //     priceSol: amount,
 //     priceUsd: amount * solPrice,
-//     amount: Number(amount) / Number(tokenPriceSOL),
-//     tradeType: "BUY"    
+//     amount: tokenAmountToAdd,
+//     tradeType: "BUY",
 //   });
+
 //   try {
 //     await newTrade.save();
 //   } catch (error) {
-//     console.log(error);
+//     console.error("Trade save error", error);
 //     return { success: false, msg: `Saving trade error: ${error}` };
 //   }
+
+//   await User.updateOne({ id }, { solBalance: newSolBalance });
+
+//   return { success: true };
+// };
+
+
+
+export const buy = async (mint: string, amount: number, id: string) => {
+  const tokenData = await getTokenDetails(mint);
+  if (!tokenData) return { success: false, msg: "No token detail" };
+
+  const liquidityPools: any[] = Object.values(tokenData.liquidityPools);
+  // console.log("Token Data:", liquidityPools[0].protocolData);
+
+  let tokenPriceSOL: number;
+  let solPrice: number = await getSolPrice(), tokenPrice:number;
+  // if(liquidityPools[0].protocolData.price0 > liquidityPools[0].protocolData.price1){
+    // tokenPriceSOL = liquidityPools[0].protocolData.price0 / 1000000000;
+    // tokenPrice = tokenPriceSOL;
+  // } else{
+    tokenPriceSOL = liquidityPools[0].protocolData.price0;    
+    tokenPrice = tokenPriceSOL * solPrice;
+  // }
+  // tokenPriceSOL = !tokenPriceSOL ? liquidityPools[1].protocolData.price1 : tokenPriceSOL;
+  
+  console.log("tokenPriceSOL", tokenPriceSOL)
+  console.log("solPrice", solPrice)
+  console.log("tokenPrice", tokenPrice)
+
+  const { name, symbol }: { name: string; symbol: string } = tokenData;
+
+  let newSolBalance: number = 0;
+  const user: UserData | null = await User.findOne({ id: id });
+  if (user) {
+    const solBalance: number = user.solBalance;
+    newSolBalance = solBalance - amount;
+    if (newSolBalance < 0)
+      return { success: false, msg: "Insufficient Sol balance" };
+  } else {
+    return { success: false, msg: "No user" };
+  }
+
+  let invested = amount * solPrice;
+
+  const token = await Token.findOne({ id: id, mint });
+  if (token) {
+    const tokenAmount = token.amount;
+    if (tokenPriceSOL>liquidityPools[0].protocolData.price1 || Number.isNaN(tokenPriceSOL)) {
+      let tokenPriceUSD: number | null = await priceFetchUSD(mint);
+      // console.log("Token Price USD:", tokenPriceUSD);
+    
+      if (tokenPriceUSD !== null && solPrice !== 0) {
+        tokenPriceSOL = tokenPriceUSD / solPrice;
+      } else {
+        console.error(`Invalid token price, cannot compute tokenPriceSOL. ${tokenPriceUSD} ${solPrice}`);
+        return { success: false, msg: "Error fetching token price" };
+      }
+    }
+
+    console.log("Num", amount);
+    console.log("TPSOL",tokenPriceSOL);
+    const newTokenAmount =
+      Number(tokenAmount) + Number(amount) / Number(tokenPriceSOL) ;
+    invested += token.invested;
+    try {
+      await Token.updateOne(
+        { id: id, mint },
+        { amount: newTokenAmount, invested }
+      );
+    } catch (error) {
+      console.log(error);
+      return { success: false, msg: `Token update error ${error}` };
+    }
+  } else {
+    console.log(invested, "invested")
+    console.log(tokenPriceSOL, "tokenPriceSOL")
+    console.log(Number.isNaN(tokenPriceSOL))
+   
+    
+
+  // if (tokenPriceSOL>liquidityPools[0].protocolData.price1) {
+    let tokenPriceUSD: number | null = await priceFetchUSD(mint);
+    // console.log("Token Price USD:", tokenPriceUSD);
+  
+    if (tokenPriceUSD !== null && solPrice !== 0) {
+      tokenPriceSOL = tokenPriceUSD / solPrice;
+    } else {
+      console.error(`Invalid token price, cannot compute tokenPriceSOL. ${tokenPriceUSD} ${solPrice}`);
+      return { success: false, msg: "Error fetching token price" };
+    }
+
+    console.log("solPrice USD", solPrice)
+    console.log("TokenUSD Price before creating token", tokenPriceUSD)
+  // }
+    console.log("TokenSOL Price before creating token", tokenPriceSOL)
+    const newToken = new Token({
+      id: id,
+      mint,
+      name,
+      symbol,
+      amount: Number(amount) / Number(tokenPriceSOL),
+      invested,
+      sold: 0
+    });
+    try {
+      await newToken.save();
+    } catch (error) {
+      console.log(error);
+      return { success: false, msg: `Saving token error: ${amount} ${error}` };
+    }
+  }
+
+
+
+
+
+  if (tokenPriceSOL>liquidityPools[0].protocolData.price1) {
+    let tokenPriceUSD: number | null = await priceFetchUSD(mint);
+    // console.log("Token Price USD:", tokenPriceUSD);
+  
+    if (tokenPriceUSD !== null && solPrice !== 0) {
+      tokenPriceSOL = tokenPriceUSD / solPrice;
+    } else {
+      console.error(`Invalid token price, cannot compute tokenPriceSOL. ${tokenPriceUSD} ${solPrice}`);
+      return { success: false, msg: "Error fetching token price" };
+    }
+  }
+  
+  const newTrade = new Trade({
+    id: id,
+    mint,
+    name,
+    symbol,
+    priceSol: amount,
+    priceUsd: amount * solPrice,
+    amount: Number(amount) / Number(tokenPriceSOL),
+    tradeType: "BUY"    
+  });
+  try {
+    await newTrade.save();
+  } catch (error) {
+    console.log(error);
+    return { success: false, msg: `Saving trade error: ${error}` };
+  }
 
 
 
@@ -417,6 +417,6 @@ export const buy = async (mint: string, amount: number, id: string) => {
 
 
   
-//   await User.updateOne({ id: id }, { solBalance: newSolBalance });
-//   return { success: true };
-// };
+  await User.updateOne({ id: id }, { solBalance: newSolBalance });
+  return { success: true };
+};
