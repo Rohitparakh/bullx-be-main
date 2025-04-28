@@ -31,6 +31,7 @@ const server = http.createServer(app);
 
 const allowedOrigins = [
   "https://conclave-front-end.vercel.app",
+  "https://conclave-fe.netlify.app",
   "https://conclave-backend.onrender.com",
   "https://conclave-front-2vrnfyat4-rohits-projects-73ef6670.vercel.app",
   "http://localhost:3000",
