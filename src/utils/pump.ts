@@ -182,34 +182,69 @@ export function calculatePumpCurvePrice(curveState: PumpCurveState): number {
 }
 
 export const getSolPrice = async (): Promise<number> => {
+  const primaryRequest = axios.get(SOL_PRICE_URL, { timeout: 2000 }).then(res => {
+    const price = res.data?.solPrice;
+    if (typeof price === 'number' && price > 0) {
+      return price;
+    }
+    throw new Error('Invalid primary SOL price');
+  });
+
+  const fallbackRequest = axios.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest', {
+    timeout: 3000,
+    params: {
+      symbol: 'SOL',
+      convert: 'USD',
+    },
+    headers: {
+      'X-CMC_PRO_API_KEY': CMC_API_KEY,
+    },
+  }).then(res => {
+    const price = res.data?.data?.SOL?.quote?.USD?.price;
+    if (typeof price === 'number' && price > 0) {
+      return price;
+    }
+    throw new Error('Invalid fallback SOL price');
+  });
+
   try {
-    const { data } = await axios.get(SOL_PRICE_URL);
-
-    const solPrice = data?.solPrice;
-    if (typeof solPrice === 'number' && solPrice > 0) {
-      return solPrice;
-    }
-    throw new Error("Invalid SOL price, using fallback");
+    // Whichever resolves first (primary preferred)
+    return await Promise.any([primaryRequest, fallbackRequest]);
   } catch {
-    // Fallback to CoinMarketCap
-    try {
-      const response = await axios.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest', {
-        params: {
-          symbol: 'SOL',
-          convert: 'USD',
-        },
-        headers: {
-          'X-CMC_PRO_API_KEY': CMC_API_KEY,
-        },
-      });
-
-      const price = response.data?.data?.SOL?.quote?.USD?.price;
-      return typeof price === 'number' ? price : 0;
-    } catch {
-      return 0;
-    }
+    // If both fail
+    return 0;
   }
 };
+
+// export const getSolPrice = async (): Promise<number> => {
+//   try {
+//     const { data } = await axios.get(SOL_PRICE_URL);
+
+//     const solPrice = data?.solPrice;
+//     if (typeof solPrice === 'number' && solPrice > 0) {
+//       return solPrice;
+//     }
+//     throw new Error("Invalid SOL price, using fallback");
+//   } catch {
+//     // Fallback to CoinMarketCap
+//     try {
+//       const response = await axios.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest', {
+//         params: {
+//           symbol: 'SOL',
+//           convert: 'USD',
+//         },
+//         headers: {
+//           'X-CMC_PRO_API_KEY': CMC_API_KEY,
+//         },
+//       });
+
+//       const price = response.data?.data?.SOL?.quote?.USD?.price;
+//       return typeof price === 'number' ? price : 0;
+//     } catch {
+//       return 0;
+//     }
+//   }
+// };
 
 
 // export const getSolPrice = async () => {
@@ -430,7 +465,7 @@ export async function getRaydiumTokenData(mintAddress: string) {
       method: 'GET',
     });
 
-    console.log(response)
+    // console.log(response)
 
 
     if (!response.ok) {
