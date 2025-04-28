@@ -18,8 +18,8 @@ export const sell = async (mint: string, amount: number, id: string) => {
     const liquidityPools: any[] = Object.values(tokenData.liquidityPools || {});
     if (liquidityPools.length === 0) return { success: false, msg: "No liquidity pool found" };
 
-    let tokenPriceSOL = liquidityPools[0].protocolData?.price0 ?? 0;
-    const altPriceSOL = liquidityPools[0].protocolData?.price1 ?? 0;
+    let tokenPriceSOL = liquidityPools[0].protocolData?.price0;
+    const altPriceSOL = liquidityPools[1]?.protocolData?.price0;
 
     // Step 2: Use USD price as fallback if price0 > price1
     if (tokenPriceSOL > altPriceSOL) {
@@ -274,22 +274,32 @@ export const priceFetchUSD = async (address: string): Promise<number | null> => 
 
 export const buy = async (mint: string, amount: number, id: string) => {
   const tokenData = await getTokenDetails(mint);
-  if (!tokenData) return { success: false, msg: "No token detail" };
+if (!tokenData) return { success: false, msg: "No token detail" };
 
-  const liquidityPools: any[] = Object.values(tokenData.liquidityPools);
-  // console.log("Token Data:", liquidityPools[0].protocolData);
+const liquidityPools: any[] = Object.values(tokenData.liquidityPools);
+if (liquidityPools.length === 0) return { success: false, msg: "No liquidity pools" };
 
-  let tokenPriceSOL: number;
-  let solPrice: number = await getSolPrice(), tokenPrice:number;
-  // if(liquidityPools[0].protocolData.price0 > liquidityPools[0].protocolData.price1){
-    // tokenPriceSOL = liquidityPools[0].protocolData.price0 / 1000000000;
-    // tokenPrice = tokenPriceSOL;
-  // } else{
-    tokenPriceSOL = liquidityPools[0].protocolData.price0;    
-    tokenPrice = tokenPriceSOL * solPrice;
-  // }
-  // tokenPriceSOL = !tokenPriceSOL ? liquidityPools[1].protocolData.price1 : tokenPriceSOL;
-  
+let tokenPriceSOL: number;
+const solPrice: number = await getSolPrice();
+let tokenPrice: number;
+
+// Try to fetch price0 safely
+let price0 = Number(liquidityPools[0]?.protocolData?.price0);
+
+// If price0 is invalid (NaN or 0), try price1 from next pool
+if (isNaN(price0) || price0 === 0) {
+  if (liquidityPools[1]) {
+    price0 = Number(liquidityPools[1]?.protocolData?.price0);
+  }
+}
+
+if (isNaN(price0) || price0 === 0) {
+  return { success: false, msg: "Invalid token price" };
+}
+
+tokenPriceSOL = price0;
+tokenPrice = tokenPriceSOL * solPrice;
+
   console.log("tokenPriceSOL", tokenPriceSOL)
   console.log("solPrice", solPrice)
   console.log("tokenPrice", tokenPrice)
