@@ -69,7 +69,6 @@ async function getSolPriceCached() {
   solPriceCache.set('sol', price);
   return price;
 }
-
 export const walletTokens = expressAsyncHandler(async (req: Request, res: Response): Promise<void> => {
   try {
     console.time('walletTokens');
@@ -88,57 +87,39 @@ export const walletTokens = expressAsyncHandler(async (req: Request, res: Respon
     }
 
     let solBalance = user.solBalance ?? 0;
-    let totalValue = 0;
-    if(solPrice){totalValue = solBalance * solPrice;}
+    let totalValue = solPrice ? solBalance * solPrice : 0;
     const tokenList = [];
 
-    const mintSet = new Set(tokens.map((t:any) => t.mint));
-    const mintArray = Array.from(mintSet);
+    if (tokens.length > 0) {
+      const mintSet = new Set(tokens.map((t: any) => t.mint));
+      const mintArray = Array.from(mintSet);
+      const limit = pLimit(7); // Increase concurrency to 7 safely
 
-    const limit = pLimit(5); // max 5 concurrent calls
-
-    // Fetch Token Details and Prices with caching + throttling
-    console.time('getTokenDetails+Prices');
-
-    const [tokenDetailsMap, usdPricesMap] = await Promise.all([
-      Promise.all(
-        mintArray.map((mint:any) =>
+      console.time('fetchTokenDataAndPrices');
+      
+      // fetch both tokenDetails and USD prices together
+      const mintData = await Promise.all(
+        mintArray.map((mint: any) =>
           limit(async () => {
-            try {
-              const data = await getTokenDetailsCached(mint);
-              return { mint, data };
-            } catch {
-              return { mint, data: null };
-            }
+            const [details, usdPrice] = await Promise.all([
+              getTokenDetailsCached(mint),
+              priceFetchUSDCached(mint),
+            ]);
+            return { mint, details, usdPrice };
           })
         )
-      ),
-      Promise.all(
-        mintArray.map((mint:any) =>
-          limit(async () => {
-            try {
-              const price = await priceFetchUSDCached(mint);
-              return { mint, price };
-            } catch {
-              return { mint, price: null };
-            }
-          })
-        )
-      ),
-    ]);
+      );
 
-    console.timeEnd('getTokenDetails+Prices');
+      const detailsByMint = Object.fromEntries(mintData.map(d => [d.mint, d.details]));
+      const usdPriceByMint = Object.fromEntries(mintData.map(d => [d.mint, d.usdPrice]));
 
-    const detailsByMint = Object.fromEntries(tokenDetailsMap.map((d) => [d.mint, d.data]));
-    const usdPriceByMint = Object.fromEntries(usdPricesMap.map((p) => [p.mint, p.price]));
+      console.timeEnd('fetchTokenDataAndPrices');
 
-    // Process token data
-    console.time('processTokens');
+      console.time('processTokens');
 
-    const processedTokens = await Promise.all(
-      tokens.map(async (token:any) => {
+      for (const token of tokens) {
         const tokenData = detailsByMint[token.mint];
-        if (!tokenData) return null;
+        if (!tokenData) continue;
 
         const pools = Object.values(tokenData.liquidityPools || {});
         const firstPool = pools[0] as any;
@@ -148,21 +129,21 @@ export const walletTokens = expressAsyncHandler(async (req: Request, res: Respon
 
         if (tokenPriceSOL > altPriceSOL) {
           const tokenPriceUSD = usdPriceByMint[token.mint];
-          if (tokenPriceUSD !== null && solPrice && solPrice>= 0) {
+          if (tokenPriceUSD !== null && solPrice && solPrice >= 0) {
             tokenPriceSOL = tokenPriceUSD / solPrice;
           } else {
-            return null;
+            continue; // Skip invalid token
           }
         }
-        let tokenPrice=0;
-        if(solPrice)tokenPrice = tokenPriceSOL * solPrice;
+
+        let tokenPrice = solPrice ? tokenPriceSOL * solPrice : 0;
         if (!tokenPrice || isNaN(tokenPrice)) {
           tokenPrice = usdPriceByMint[token.mint] ?? 0;
         }
 
         totalValue += tokenPrice * token.amount;
 
-        return {
+        tokenList.push({
           name: token.name,
           symbol: token.symbol,
           mint: token.mint,
@@ -170,13 +151,11 @@ export const walletTokens = expressAsyncHandler(async (req: Request, res: Respon
           invested: token.invested,
           sold: token.sold,
           price: tokenPrice,
-        };
-      })
-    );
+        });
+      }
 
-    console.timeEnd('processTokens');
-
-    tokenList.push(...processedTokens.filter(Boolean));
+      console.timeEnd('processTokens');
+    }
 
     console.timeEnd('walletTokens');
 
@@ -190,11 +169,138 @@ export const walletTokens = expressAsyncHandler(async (req: Request, res: Respon
         tradeHistory: trade,
       },
     });
+
   } catch (error) {
     console.error('Error fetching wallet tokens:', error);
     res.status(500).json({ success: false, msg: 'Server error' });
   }
 });
+
+// export const walletTokens = expressAsyncHandler(async (req: Request, res: Response): Promise<void> => {
+//   try {
+//     console.time('walletTokens');
+//     const { id } = req.body;
+
+//     const [user, tokens, trade, solPrice] = await Promise.all([
+//       User.findOne({ id }).lean(),
+//       Token.find({ id }).lean(),
+//       Trade.find({ id }).lean(),
+//       getSolPriceCached(),
+//     ]);
+
+//     if (!user) {
+//       res.status(404).json({ success: false, msg: 'User not found' });
+//       return;
+//     }
+
+//     let solBalance = user.solBalance ?? 0;
+//     let totalValue = 0;
+//     if(solPrice){totalValue = solBalance * solPrice;}
+//     const tokenList = [];
+
+//     const mintSet = new Set(tokens.map((t:any) => t.mint));
+//     const mintArray = Array.from(mintSet);
+
+//     const limit = pLimit(5); // max 5 concurrent calls
+
+//     // Fetch Token Details and Prices with caching + throttling
+//     console.time('getTokenDetails+Prices');
+
+//     const [tokenDetailsMap, usdPricesMap] = await Promise.all([
+//       Promise.all(
+//         mintArray.map((mint:any) =>
+//           limit(async () => {
+//             try {
+//               const data = await getTokenDetailsCached(mint);
+//               return { mint, data };
+//             } catch {
+//               return { mint, data: null };
+//             }
+//           })
+//         )
+//       ),
+//       Promise.all(
+//         mintArray.map((mint:any) =>
+//           limit(async () => {
+//             try {
+//               const price = await priceFetchUSDCached(mint);
+//               return { mint, price };
+//             } catch {
+//               return { mint, price: null };
+//             }
+//           })
+//         )
+//       ),
+//     ]);
+
+//     console.timeEnd('getTokenDetails+Prices');
+
+//     const detailsByMint = Object.fromEntries(tokenDetailsMap.map((d) => [d.mint, d.data]));
+//     const usdPriceByMint = Object.fromEntries(usdPricesMap.map((p) => [p.mint, p.price]));
+
+//     // Process token data
+//     console.time('processTokens');
+
+//     const processedTokens = await Promise.all(
+//       tokens.map(async (token:any) => {
+//         const tokenData = detailsByMint[token.mint];
+//         if (!tokenData) return null;
+
+//         const pools = Object.values(tokenData.liquidityPools || {});
+//         const firstPool = pools[0] as any;
+
+//         let tokenPriceSOL = firstPool?.protocolData?.price0 ?? 0;
+//         const altPriceSOL = firstPool?.protocolData?.price1 ?? 0;
+
+//         if (tokenPriceSOL > altPriceSOL) {
+//           const tokenPriceUSD = usdPriceByMint[token.mint];
+//           if (tokenPriceUSD !== null && solPrice && solPrice>= 0) {
+//             tokenPriceSOL = tokenPriceUSD / solPrice;
+//           } else {
+//             return null;
+//           }
+//         }
+//         let tokenPrice=0;
+//         if(solPrice)tokenPrice = tokenPriceSOL * solPrice;
+//         if (!tokenPrice || isNaN(tokenPrice)) {
+//           tokenPrice = usdPriceByMint[token.mint] ?? 0;
+//         }
+
+//         totalValue += tokenPrice * token.amount;
+
+//         return {
+//           name: token.name,
+//           symbol: token.symbol,
+//           mint: token.mint,
+//           amount: token.amount,
+//           invested: token.invested,
+//           sold: token.sold,
+//           price: tokenPrice,
+//         };
+//       })
+//     );
+
+//     console.timeEnd('processTokens');
+
+//     tokenList.push(...processedTokens.filter(Boolean));
+
+//     console.timeEnd('walletTokens');
+
+//     res.status(200).json({
+//       success: true,
+//       data: {
+//         solBalance,
+//         totalValue,
+//         solPrice,
+//         tokenList,
+//         tradeHistory: trade,
+//       },
+//     });
+//   } catch (error) {
+//     console.error('Error fetching wallet tokens:', error);
+//     res.status(500).json({ success: false, msg: 'Server error' });
+//   }
+// });
 
 // export const walletTokens = expressAsyncHandler(async (req: Request, res: Response): Promise<void> => {
 //   try {
