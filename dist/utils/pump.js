@@ -22,15 +22,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -97,46 +88,44 @@ const PUMP_CURVE_STATE_OFFSETS = {
 };
 // Fetches account data of a Pump.fun bonding curve, and deserializes it
 // according to `accounts.BondingCurve` (see: Pump.fun program's Anchor IDL).
-function getPumpCurveState(curveAddress) {
-    return __awaiter(this, void 0, void 0, function* () {
-        // console.log('RPC: ',RPC_ENDPOINT)
-        const conn = new web3.Connection(config_1.RPC_ENDPOINT, "confirmed");
-        const pubKey = new web3.PublicKey(curveAddress);
-        // console.log("Curve Address: ",curveAddress)
-        // console.log("PUBKEY: ",pubKey)
-        // console.log("Fetching account info for:", curveAddress);
-        const response = yield conn.getAccountInfo(pubKey);
-        console.log("Response: ", response === null || response === void 0 ? void 0 : response.data);
-        if (!response) {
-            console.error("Account not found. Possible reasons:");
-            console.error("- The account does not exist.");
-            console.error("- The account is closed.");
-            console.error("- RPC rate limits are hit.");
-            throw new Error("Unexpected curve state: Account not found.");
-            // await fetchBondingCurve(mintAddress);
-        }
-        // console.log("Account Data Length:", response.data?.byteLength);
-        // const response = await conn.getAccountInfo(pubKey);
-        if (!response ||
-            !response.data ||
-            response.data.byteLength <
-                PUMP_CURVE_STATE_SIGNATURE.byteLength + PUMP_CURVE_STATE_SIZE) {
-            // console.log(response)
-            throw new Error("unexpected curve state");
-        }
-        const idlSignature = readBytes(response.data, 0, PUMP_CURVE_STATE_SIGNATURE.byteLength);
-        if (idlSignature.compare(PUMP_CURVE_STATE_SIGNATURE) !== 0) {
-            throw new Error("unexpected curve state IDL signature");
-        }
-        return {
-            virtualTokenReserves: readBigUintLE(response.data, PUMP_CURVE_STATE_OFFSETS.VIRTUAL_TOKEN_RESERVES, 8),
-            virtualSolReserves: readBigUintLE(response.data, PUMP_CURVE_STATE_OFFSETS.VIRTUAL_SOL_RESERVES, 8),
-            realTokenReserves: readBigUintLE(response.data, PUMP_CURVE_STATE_OFFSETS.REAL_TOKEN_RESERVES, 8),
-            realSolReserves: readBigUintLE(response.data, PUMP_CURVE_STATE_OFFSETS.REAL_SOL_RESERVES, 8),
-            tokenTotalSupply: readBigUintLE(response.data, PUMP_CURVE_STATE_OFFSETS.TOKEN_TOTAL_SUPPLY, 8),
-            complete: readBoolean(response.data, PUMP_CURVE_STATE_OFFSETS.COMPLETE, 1),
-        };
-    });
+async function getPumpCurveState(curveAddress) {
+    // console.log('RPC: ',RPC_ENDPOINT)
+    const conn = new web3.Connection(config_1.RPC_ENDPOINT, "confirmed");
+    const pubKey = new web3.PublicKey(curveAddress);
+    // console.log("Curve Address: ",curveAddress)
+    // console.log("PUBKEY: ",pubKey)
+    // console.log("Fetching account info for:", curveAddress);
+    const response = await conn.getAccountInfo(pubKey);
+    console.log("Response: ", response?.data);
+    if (!response) {
+        console.error("Account not found. Possible reasons:");
+        console.error("- The account does not exist.");
+        console.error("- The account is closed.");
+        console.error("- RPC rate limits are hit.");
+        throw new Error("Unexpected curve state: Account not found.");
+        // await fetchBondingCurve(mintAddress);
+    }
+    // console.log("Account Data Length:", response.data?.byteLength);
+    // const response = await conn.getAccountInfo(pubKey);
+    if (!response ||
+        !response.data ||
+        response.data.byteLength <
+            PUMP_CURVE_STATE_SIGNATURE.byteLength + PUMP_CURVE_STATE_SIZE) {
+        // console.log(response)
+        throw new Error("unexpected curve state");
+    }
+    const idlSignature = readBytes(response.data, 0, PUMP_CURVE_STATE_SIGNATURE.byteLength);
+    if (idlSignature.compare(PUMP_CURVE_STATE_SIGNATURE) !== 0) {
+        throw new Error("unexpected curve state IDL signature");
+    }
+    return {
+        virtualTokenReserves: readBigUintLE(response.data, PUMP_CURVE_STATE_OFFSETS.VIRTUAL_TOKEN_RESERVES, 8),
+        virtualSolReserves: readBigUintLE(response.data, PUMP_CURVE_STATE_OFFSETS.VIRTUAL_SOL_RESERVES, 8),
+        realTokenReserves: readBigUintLE(response.data, PUMP_CURVE_STATE_OFFSETS.REAL_TOKEN_RESERVES, 8),
+        realSolReserves: readBigUintLE(response.data, PUMP_CURVE_STATE_OFFSETS.REAL_SOL_RESERVES, 8),
+        tokenTotalSupply: readBigUintLE(response.data, PUMP_CURVE_STATE_OFFSETS.TOKEN_TOTAL_SUPPLY, 8),
+        complete: readBoolean(response.data, PUMP_CURVE_STATE_OFFSETS.COMPLETE, 1),
+    };
 }
 // Calculates token price (in SOL) of a Pump.fun bonding curve.
 function calculatePumpCurvePrice(curveState) {
@@ -154,137 +143,171 @@ function calculatePumpCurvePrice(curveState) {
         web3.LAMPORTS_PER_SOL /
         (Number(curveState.virtualTokenReserves) / 10 ** PUMP_CURVE_TOKEN_DECIMALS));
 }
-const getSolPrice = () => __awaiter(void 0, void 0, void 0, function* () {
-    const url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest';
-    console.log("SOL PRICE URL");
-    console.log(config_1.SOL_PRICE_URL);
-    console.log("CMC_API_KEY");
-    console.log(config_1.CMC_API_KEY);
+const getSolPrice = async () => {
+    const primaryRequest = axios_1.default.get(config_1.SOL_PRICE_URL, { timeout: 2000 }).then(res => {
+        const price = res.data?.solPrice;
+        if (typeof price === 'number' && price > 0) {
+            return price;
+        }
+        throw new Error('Invalid primary SOL price');
+    });
+    const fallbackRequest = axios_1.default.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest', {
+        timeout: 3000,
+        params: {
+            symbol: 'SOL',
+            convert: 'USD',
+        },
+        headers: {
+            'X-CMC_PRO_API_KEY': config_1.CMC_API_KEY,
+        },
+    }).then(res => {
+        const price = res.data?.data?.SOL?.quote?.USD?.price;
+        if (typeof price === 'number' && price > 0) {
+            return price;
+        }
+        throw new Error('Invalid fallback SOL price');
+    });
     try {
-        const { data } = yield axios_1.default.get(config_1.SOL_PRICE_URL);
-        console.log("DATAaaaa", data);
-        if (!(data === null || data === void 0 ? void 0 : data.solPrice) || data.solPrice <= 0) {
-            throw new Error("Invalid SOL price, falling back to CoinMarketCap API");
-        }
-        return data.solPrice;
+        // Whichever resolves first (primary preferred)
+        return await Promise.any([primaryRequest, fallbackRequest]);
     }
-    catch (error) {
-        // console.error("Error fetching SOL price from primary source:", error.message);
-        // Fallback to CoinMarketCap API
-        try {
-            const response = yield axios_1.default.get(url, {
-                params: {
-                    symbol: 'SOL',
-                    convert: 'USD',
-                },
-                headers: {
-                    'X-CMC_PRO_API_KEY': config_1.CMC_API_KEY,
-                },
-            });
-            const price = response.data.data.SOL.quote.USD.price;
-            console.log(`The current price of Solana (SOL) is $${price.toFixed(2)} USD.`);
-            return price.toFixed(2);
-        }
-        catch (fallbackError) {
-            // console.error("Error fetching SOL price from CoinMarketCap:", fallbackError.message);
-            return 0; // Return 0 if both APIs fail
-        }
+    catch {
+        // If both fail
+        return 0;
     }
-});
+};
 exports.getSolPrice = getSolPrice;
-// export const getSolPrice = async () => {
+// export const getSolPrice = async (): Promise<number> => {
 //   try {
 //     const { data } = await axios.get(SOL_PRICE_URL);
-//     const url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest';    
-//     console.log("DATAaaaa", data)
-//     if (data.solPrice<=0){
-//         const response = await axios.get(url, {
-//           params: {
-//             symbol: 'SOL',
-//             convert: 'USD',
-//           },
-//           headers: {
-//             'X-CMC_PRO_API_KEY': CMC_API_KEY,
-//           },
-//         });
-//         const price = response.data.data.SOL.quote.USD.price;
-//         console.log(`The current price of Solana (SOL) is $${price.toFixed(2)} USD.`);
-//         return price.toFixed(2);
+//     const solPrice = data?.solPrice;
+//     if (typeof solPrice === 'number' && solPrice > 0) {
+//       return solPrice;
 //     }
-//     return data.solPrice;
-//   } catch (error) {
-//     return 0;
+//     throw new Error("Invalid SOL price, using fallback");
+//   } catch {
+//     // Fallback to CoinMarketCap
+//     try {
+//       const response = await axios.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest', {
+//         params: {
+//           symbol: 'SOL',
+//           convert: 'USD',
+//         },
+//         headers: {
+//           'X-CMC_PRO_API_KEY': CMC_API_KEY,
+//         },
+//       });
+//       const price = response.data?.data?.SOL?.quote?.USD?.price;
+//       return typeof price === 'number' ? price : 0;
+//     } catch {
+//       return 0;
+//     }
 //   }
 // };
-const getTransactions = (address_1, ...args_1) => __awaiter(void 0, [address_1, ...args_1], void 0, function* (address, limit = 200, offset = 0, minimumSize = 0) {
+// export const getSolPrice = async () => {
+//   const url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest';
+//   console.log("SOL PRICE URL")
+//   console.log(SOL_PRICE_URL)
+//   console.log("CMC_API_KEY")
+//   console.log(CMC_API_KEY)
+//   try {
+//     const { data } = await axios.get(SOL_PRICE_URL);
+//     console.log("DATAaaaa", data);
+//     if (!data?.solPrice || data.solPrice <= 0) {
+//       throw new Error("Invalid SOL price, falling back to CoinMarketCap API");
+//     }
+//     return data.solPrice;
+//   } catch (error:any) {
+//     // console.error("Error fetching SOL price from primary source:", error.message);
+//     // Fallback to CoinMarketCap API
+//     try {
+//       const response = await axios.get(url, {
+//         params: {
+//           symbol: 'SOL',
+//           convert: 'USD',
+//         },
+//         headers: {
+//           'X-CMC_PRO_API_KEY': CMC_API_KEY,
+//         },
+//       });
+//       const price = response.data.data.SOL.quote.USD.price;
+//       console.log(`The current price of Solana (SOL) is $${price.toFixed(2)} USD.`);
+//       return price.toFixed(2);
+//     } catch (fallbackError:any) {
+//       // console.error("Error fetching SOL price from CoinMarketCap:", fallbackError.message);
+//       return 0;  // Return 0 if both APIs fail
+//     }
+//   }
+// };
+const getTransactions = async (address, limit = 200, offset = 0, minimumSize = 0) => {
     try {
-        const { data } = yield axios_1.default.get(`${config_1.TRANSCATION_URL}/${address}?limit=${limit}&offset=${offset}&minimumSize=${minimumSize}`);
+        const { data } = await axios_1.default.get(`${config_1.TRANSCATION_URL}/${address}?limit=${limit}&offset=${offset}&minimumSize=${minimumSize}`);
         return data;
     }
     catch (error) {
         return [];
     }
-});
+};
 exports.getTransactions = getTransactions;
-const getOHLC = (address_1, ...args_1) => __awaiter(void 0, [address_1, ...args_1], void 0, function* (address, offset = 0, limit = 1000, timeframe = 5) {
+const getOHLC = async (address, offset = 0, limit = 1000, timeframe = 5) => {
     try {
-        const { data } = yield axios_1.default.get(`${config_1.OHLC_BASE_URL}/${address}?offset=${offset}&limit=${limit}&timeframe=${timeframe}`);
+        const { data } = await axios_1.default.get(`${config_1.OHLC_BASE_URL}/${address}?offset=${offset}&limit=${limit}&timeframe=${timeframe}`);
         return data;
     }
     catch (error) {
         return [];
     }
-});
+};
 exports.getOHLC = getOHLC;
-const getPumpMeta = (address) => __awaiter(void 0, void 0, void 0, function* () {
+const getPumpMeta = async (address) => {
     try {
-        const response = yield (0, solana_1.getMetadata)(address);
+        const response = await (0, solana_1.getMetadata)(address);
         return response;
     }
     catch (error) {
         console.log(error);
         return 0;
     }
-});
+};
 exports.getPumpMeta = getPumpMeta;
-const getPumpCurveData = (address) => __awaiter(void 0, void 0, void 0, function* () {
-    const newAddress = yield (0, graphql_1.getPairAddress)(address);
+const getPumpCurveData = async (address) => {
+    const newAddress = await (0, graphql_1.getPairAddress)(address);
     const bondingCurveAddress = newAddress.toString();
-    const bondingCurveData = yield getPumpCurveState(bondingCurveAddress);
+    const bondingCurveData = await getPumpCurveState(bondingCurveAddress);
     // const testCurveData = await testPumpCurveAccount(bondingCurveAddress);
     const pumpCurvePrice = calculatePumpCurvePrice(bondingCurveData);
     const marketCap = pumpCurvePrice * 10 ** 9;
     const liquidity = (Number(bondingCurveData.realSolReserves) * 2) / web3_js_2.LAMPORTS_PER_SOL;
-    const solPrice = yield (0, exports.getSolPrice)();
+    const solPrice = await (0, exports.getSolPrice)();
     const bondingProgress = ((marketCap * solPrice) / 690) * 2;
     return { pumpCurvePrice, marketCap, liquidity, bondingProgress };
-});
+};
 exports.getPumpCurveData = getPumpCurveData;
-const getPumpCurveDataByBondingCurveKey = (bondingCurveAddress) => __awaiter(void 0, void 0, void 0, function* () {
-    const bondingCurveData = yield getPumpCurveState(bondingCurveAddress);
+const getPumpCurveDataByBondingCurveKey = async (bondingCurveAddress) => {
+    const bondingCurveData = await getPumpCurveState(bondingCurveAddress);
     // const testCurveData = await testPumpCurveAccount(bondingCurveAddress);
     const pumpCurvePrice = calculatePumpCurvePrice(bondingCurveData);
     const marketCap = pumpCurvePrice * 10 ** 9;
     const liquidity = (Number(bondingCurveData.realSolReserves) * 2) / web3_js_2.LAMPORTS_PER_SOL;
-    const solPrice = yield (0, exports.getSolPrice)();
+    const solPrice = await (0, exports.getSolPrice)();
     const bondingProgress = ((marketCap * solPrice) / 690) * 2;
     return { pumpCurvePrice, marketCap, liquidity, bondingProgress };
-});
+};
 exports.getPumpCurveDataByBondingCurveKey = getPumpCurveDataByBondingCurveKey;
-const saveNewPumpToken = (coinData) => __awaiter(void 0, void 0, void 0, function* () {
+const saveNewPumpToken = async (coinData) => {
     try {
         // const mcData: ITokenMC = await getPumpCurveDataByBondingCurveKey(
         //   coinData.bonding_curve_key as string
         // );
         // const newCoinData: IPumpToken = { ...coinData, mc_data: mcData };
-        const newCoinData = Object.assign({}, coinData);
+        const newCoinData = { ...coinData };
         const newCoin = new pumptoken_1.default(newCoinData);
         newCoin.save();
     }
     catch (error) {
         console.log(error);
     }
-});
+};
 exports.saveNewPumpToken = saveNewPumpToken;
 const node_fetch_1 = __importDefault(require("node-fetch"));
 // const RAYDIUM_API = "https://api-v3.raydium.io/amm/pairs";
@@ -344,43 +367,40 @@ const node_fetch_1 = __importDefault(require("node-fetch"));
 //   }
 // }
 const RAYDIUM_API = "https://api-v3.raydium.io/pools/info/mint";
-function getRaydiumTokenData(mintAddress) {
-    return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c, _d, _e;
-        try {
-            console.log("Fetching data for:", mintAddress);
-            const response = yield (0, node_fetch_1.default)(`${RAYDIUM_API}?mint1=${mintAddress}&poolType=all&poolSortField=default&sortType=asc&pageSize=1000&page=1`, {
-                method: 'GET',
-            });
-            console.log(response);
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            const data = yield response.json();
-            console.log("Raw API Response:", JSON.stringify(data, null, 2));
-            if (!data || Object.keys(data).length === 0) {
-                throw new Error("Token not found on Raydium.");
-            }
-            // Extract correct properties based on actual response structure
-            const tokenData = Object.values(data)[0];
-            if (!tokenData) {
-                throw new Error("Invalid token data.");
-            }
-            return {
-                price: (_a = tokenData.price) !== null && _a !== void 0 ? _a : null,
-                volume24h: (_b = tokenData.volume24h) !== null && _b !== void 0 ? _b : null,
-                liquidity: (_c = tokenData.liquidity) !== null && _c !== void 0 ? _c : null,
-                baseMint: (_d = tokenData.baseMint) !== null && _d !== void 0 ? _d : null,
-                quoteMint: (_e = tokenData.quoteMint) !== null && _e !== void 0 ? _e : null,
-            };
+async function getRaydiumTokenData(mintAddress) {
+    try {
+        console.log("Fetching data for:", mintAddress);
+        const response = await (0, node_fetch_1.default)(`${RAYDIUM_API}?mint1=${mintAddress}&poolType=all&poolSortField=default&sortType=asc&pageSize=1000&page=1`, {
+            method: 'GET',
+        });
+        // console.log(response)
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
         }
-        catch (error) {
-            console.error("Error fetching Raydium token data:", error);
-            return null;
+        const data = await response.json();
+        console.log("Raw API Response:", JSON.stringify(data, null, 2));
+        if (!data || Object.keys(data).length === 0) {
+            throw new Error("Token not found on Raydium.");
         }
-    });
+        // Extract correct properties based on actual response structure
+        const tokenData = Object.values(data)[0];
+        if (!tokenData) {
+            throw new Error("Invalid token data.");
+        }
+        return {
+            price: tokenData.price ?? null,
+            volume24h: tokenData.volume24h ?? null,
+            liquidity: tokenData.liquidity ?? null,
+            baseMint: tokenData.baseMint ?? null,
+            quoteMint: tokenData.quoteMint ?? null,
+        };
+    }
+    catch (error) {
+        console.error("Error fetching Raydium token data:", error);
+        return null;
+    }
 }
-const getTokenDetails = (mintAddress) => __awaiter(void 0, void 0, void 0, function* () {
+const getTokenDetails = async (mintAddress) => {
     try {
         let bondingCurveData = null;
         let raydiumData = null;
@@ -389,7 +409,7 @@ const getTokenDetails = (mintAddress) => __awaiter(void 0, void 0, void 0, funct
             // Check if the token is from Pump.fun
             const newAddress = (0, graphql_1.getPairAddress)(mintAddress);
             const bondingCurveAddress = newAddress.toString();
-            bondingCurveData = yield getPumpCurveState(bondingCurveAddress);
+            bondingCurveData = await getPumpCurveState(bondingCurveAddress);
             isPumpFun = true;
         }
         catch (error) {
@@ -397,16 +417,16 @@ const getTokenDetails = (mintAddress) => __awaiter(void 0, void 0, void 0, funct
         }
         if (!isPumpFun) {
             // Fetch data from Raydium if it's not a Pump.fun token
-            raydiumData = yield getRaydiumTokenData(mintAddress);
+            raydiumData = await getRaydiumTokenData(mintAddress);
             if (!raydiumData) {
                 throw new Error("Token not found on Pump.fun or Raydium.");
             }
         }
         // Fetch token info from GraphQL
-        let holders = yield (0, graphql_1.bullxGraphql)("holders", mintAddress);
-        const tokenInfo = yield (0, graphql_1.bullxGraphql)("tokeninfo", mintAddress);
-        const tradeInfo = yield (0, graphql_1.bullxGraphql)("trade", mintAddress);
-        const ohlcData = yield (0, graphql_1.bullxGraphql)("ohlc", mintAddress);
+        let holders = await (0, graphql_1.bullxGraphql)("holders", mintAddress);
+        const tokenInfo = await (0, graphql_1.bullxGraphql)("tokeninfo", mintAddress);
+        const tradeInfo = await (0, graphql_1.bullxGraphql)("trade", mintAddress);
+        const ohlcData = await (0, graphql_1.bullxGraphql)("ohlc", mintAddress);
         // Process OHLC data
         const ohlc = ohlcData.t.map((_, ind) => ({
             o: ohlcData.o[ind],
@@ -425,17 +445,28 @@ const getTokenDetails = (mintAddress) => __awaiter(void 0, void 0, void 0, funct
             for (let i = 0; i < holders.length; i++) {
                 const firstNumber = new bignumber_js_1.default(holders[i].currentlyHoldingAmount);
                 const toNumber = new bignumber_js_1.default(bondingCurveData.tokenTotalSupply);
-                holders[i] = Object.assign({ percentage: (0, solana_1.formatNumber)(firstNumber.dividedBy(toNumber).multipliedBy(100).toNumber()) }, holders[i]);
+                holders[i] = {
+                    percentage: (0, solana_1.formatNumber)(firstNumber.dividedBy(toNumber).multipliedBy(100).toNumber()),
+                    ...holders[i],
+                };
             }
         }
         // Return data with appropriate source
-        return Object.assign(Object.assign({ source: isPumpFun ? "Pump.fun" : "Raydium", bondingCurve: isPumpFun ? bondingCurveData.complete : false, raydium: !isPumpFun }, tokenInfo.data[mintAddress]), { holders, transactions: tradeInfo.tradeHistory, ohlc });
+        return {
+            source: isPumpFun ? "Pump.fun" : "Raydium",
+            bondingCurve: isPumpFun ? bondingCurveData.complete : false,
+            raydium: !isPumpFun,
+            ...tokenInfo.data[mintAddress],
+            holders,
+            transactions: tradeInfo.tradeHistory,
+            ohlc,
+        };
     }
     catch (error) {
         console.log("Error fetching token details:", error);
         return null;
     }
-});
+};
 exports.getTokenDetails = getTokenDetails;
 // export const getTokenDetails = async (mintAddress: string) => {
 //   try {
@@ -488,39 +519,37 @@ exports.getTokenDetails = getTokenDetails;
 //     return null;
 //   }
 // };
-function getRaydiumPoolInfo(mintAddress) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const apiUrl = `https://api.raydium.io/v2/ammV3/ammPools`;
-        try {
-            const { data } = yield axios_1.default.get(apiUrl);
-            // const pool = data.official.find(
-            //   (p: any) => p.lpMint === mintAddress || p.baseMint === mintAddress
-            // );
-            // console.log(pool?.market)
-            // return pool ? pool.market : null;
-            console.log(data);
-            return data;
-        }
-        catch (error) {
-            console.error("Error fetching Raydium pool info:", error);
-            return null;
-        }
-    });
+async function getRaydiumPoolInfo(mintAddress) {
+    const apiUrl = `https://api.raydium.io/v2/ammV3/ammPools`;
+    try {
+        const { data } = await axios_1.default.get(apiUrl);
+        // const pool = data.official.find(
+        //   (p: any) => p.lpMint === mintAddress || p.baseMint === mintAddress
+        // );
+        // console.log(pool?.market)
+        // return pool ? pool.market : null;
+        console.log(data);
+        return data;
+    }
+    catch (error) {
+        console.error("Error fetching Raydium pool info:", error);
+        return null;
+    }
 }
-const getRaydiumTokenPrice = (mintAddress) => (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const getRaydiumTokenPrice = (mintAddress) => (0, express_async_handler_1.default)(async (req, res) => {
     {
         let address = mintAddress;
         if (address == undefined) {
             let params = req.params;
             address = params.mintAddress;
         }
-        const poolAddress = yield getRaydiumPoolInfo(address);
+        const poolAddress = await getRaydiumPoolInfo(address);
         if (!poolAddress) {
             throw new Error("Token not found in Raydium pools.");
         }
         const apiUrl = `https://api.raydium.io/v2/main/ammPools`;
         try {
-            const { data } = yield axios_1.default.get(apiUrl);
+            const { data } = await axios_1.default.get(apiUrl);
             const poolData = data.ammPools.find((p) => p.id === poolAddress);
             if (!poolData) {
                 throw new Error("Liquidity pool not found.");
@@ -539,7 +568,7 @@ const getRaydiumTokenPrice = (mintAddress) => (0, express_async_handler_1.defaul
             res.status(500).json({ message: "Error fetching Raydium token price" });
         }
     }
-}));
+});
 exports.getRaydiumTokenPrice = getRaydiumTokenPrice;
 exports.structure = (0, borsh_1.struct)([
     (0, borsh_1.u64)("discriminator"),
@@ -583,14 +612,14 @@ const connection = new web3.Connection("https://api.mainnet-beta.solana.com");
 //     console.log("Account not found");
 //   }
 // }
-exports.fetchBondingCurve = (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.fetchBondingCurve = (0, express_async_handler_1.default)(async (req, res) => {
     const { mint } = req.params;
     if (!mint) {
         res.status(400).json({ success: false, message: "Mint address is required" });
         return;
     }
     const tokenAddress = new web3_js_1.PublicKey(mint);
-    const accountInfo = yield connection.getAccountInfo(tokenAddress);
+    const accountInfo = await connection.getAccountInfo(tokenAddress);
     if (!accountInfo) {
         res.status(404).json({ success: false, message: "Account not found" });
         return;
@@ -604,7 +633,7 @@ exports.fetchBondingCurve = (0, express_async_handler_1.default)((req, res) => _
     });
     console.error("Error fetching bonding curve:");
     res.status(500).json({ success: false, message: "Internal server error" });
-}));
+});
 // export const fetchBondingCurve = async (req: Request, res: Response): Promise<void> => {
 //   try {
 //     const tokenAddress = new PublicKey(mint);
@@ -623,33 +652,30 @@ exports.fetchBondingCurve = (0, express_async_handler_1.default)((req, res) => _
 //   }
 // };
 const TOKEN_LIST_URL = "https://raw.githubusercontent.com/solana-labs/token-list/main/src/tokens/solana.tokenlist.json";
-function getTokenSymbol(mintAddress) {
-    return __awaiter(this, void 0, void 0, function* () {
-        var _a;
-        try {
-            const requestOptions = {
-                method: "GET",
-                headers: { "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjcmVhdGVkQXQiOjE3MjM2Nzk3MDgxOTgsImVtYWlsIjoiZHJlYW15dGdib3RAZ21haWwuY29tIiwiYWN0aW9uIjoidG9rZW4tYXBpIiwiYXBpVmVyc2lvbiI6InYyIiwiaWF0IjoxNzIzNjc5NzA4fQ.qEG3q2DSX_i60f8eNhAZ_XEQgmbRHZmQPgY4_7RhZQU" }
-            };
-            const response = yield (0, node_fetch_1.default)(`https://pro-api.solscan.io/v2.0/token/meta?address=${mintAddress}`, requestOptions);
-            // console.log(response)
-            if (!response.ok) {
-                throw new Error(`Failed to fetch token data: ${response.statusText}`);
-            }
-            const data = (yield response.json());
-            if (!((_a = data === null || data === void 0 ? void 0 : data.data) === null || _a === void 0 ? void 0 : _a.symbol)) {
-                console.log("Token symbol not found.");
-                return null;
-            }
-            return data.data.symbol;
+async function getTokenSymbol(mintAddress) {
+    try {
+        const requestOptions = {
+            method: "GET",
+            headers: { "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjcmVhdGVkQXQiOjE3MjM2Nzk3MDgxOTgsImVtYWlsIjoiZHJlYW15dGdib3RAZ21haWwuY29tIiwiYWN0aW9uIjoidG9rZW4tYXBpIiwiYXBpVmVyc2lvbiI6InYyIiwiaWF0IjoxNzIzNjc5NzA4fQ.qEG3q2DSX_i60f8eNhAZ_XEQgmbRHZmQPgY4_7RhZQU" }
+        };
+        const response = await (0, node_fetch_1.default)(`https://pro-api.solscan.io/v2.0/token/meta?address=${mintAddress}`, requestOptions);
+        // console.log(response)
+        if (!response.ok) {
+            throw new Error(`Failed to fetch token data: ${response.statusText}`);
         }
-        catch (error) {
-            console.error("Error fetching token symbol:", error);
+        const data = (await response.json());
+        if (!data?.data?.symbol) {
+            console.log("Token symbol not found.");
             return null;
         }
-    });
+        return data.data.symbol;
+    }
+    catch (error) {
+        console.error("Error fetching token symbol:", error);
+        return null;
+    }
 }
-exports.fetchTokenData = (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.fetchTokenData = (0, express_async_handler_1.default)(async (req, res) => {
     const { mint } = req.params;
     if (!mint) {
         res.status(400).json({ success: false, message: "Mint address is required" });
@@ -664,13 +690,13 @@ exports.fetchTokenData = (0, express_async_handler_1.default)((req, res) => __aw
                 "token": `${config_1.SOLSCAN_TOKEN}`
             }
         };
-        const solscanResponse = yield (0, node_fetch_1.default)(`https://pro-api.solscan.io/v2.0/token/meta?address=${mint}`, requestOptions);
+        const solscanResponse = await (0, node_fetch_1.default)(`https://pro-api.solscan.io/v2.0/token/meta?address=${mint}`, requestOptions);
         if (!solscanResponse.ok) {
             throw new Error(`Failed to fetch token data: ${solscanResponse.statusText}`);
         }
         // Fix: Explicitly define the response type using `as`
-        const solscanData = (yield solscanResponse.json());
-        if (!(solscanData === null || solscanData === void 0 ? void 0 : solscanData.data) || Object.keys(solscanData.data).length === 0) {
+        const solscanData = (await solscanResponse.json());
+        if (!solscanData?.data || Object.keys(solscanData.data).length === 0) {
             res.status(404).json({ success: false, message: "Token not found in Solana network" });
             return;
         }
@@ -695,7 +721,7 @@ exports.fetchTokenData = (0, express_async_handler_1.default)((req, res) => __aw
         console.error("Error fetching token data:", error);
         res.status(500).json({ success: false, message: "Internal server error" });
     }
-}));
+});
 // export const fetchTokenData = expressAsyncHandler(
 //   async (req: Request, res: Response) => {
 //     const { mint } = req.params;

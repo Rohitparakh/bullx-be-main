@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -32,6 +23,7 @@ const app = (0, express_1.default)();
 const server = http_1.default.createServer(app);
 const allowedOrigins = [
     "https://conclave-front-end.vercel.app",
+    "https://conclave-fe.netlify.app",
     "https://conclave-backend.onrender.com",
     "https://conclave-front-2vrnfyat4-rohits-projects-73ef6670.vercel.app",
     "http://localhost:3000",
@@ -83,7 +75,7 @@ app.use("/", trade_router_1.default);
 console.log("✅ Discord routes registered");
 console.log("Discord client ID set?", !!process.env.DISCORD_CLIENT_ID);
 io.on("connection", (socket) => {
-    socket.on("sendData", (data) => __awaiter(void 0, void 0, void 0, function* () {
+    socket.on("sendData", async (data) => {
         const { id } = data;
         console.log("clientId");
         console.log(data);
@@ -92,7 +84,7 @@ io.on("connection", (socket) => {
             return;
         }
         try {
-            let user = yield user_1.default.findOne({ id: id });
+            let user = await user_1.default.findOne({ id: id });
             if (!user) {
                 const keyPair = web3_js_1.default.Keypair.generate();
                 const newUser = new user_1.default({
@@ -102,7 +94,7 @@ io.on("connection", (socket) => {
                     prvKey: bs58_1.default.encode(keyPair.secretKey),
                     solBalance: 30,
                 });
-                const savedUser = yield newUser.save();
+                const savedUser = await newUser.save();
                 console.log("✨ New user created and emitting login to client");
                 socket.emit("login", {
                     user: savedUser,
@@ -120,7 +112,7 @@ io.on("connection", (socket) => {
         catch (error) {
             console.error("Error handling sendData:", error);
         }
-    }));
+    });
 });
 app.use((req, res, next) => {
     req.io = io;

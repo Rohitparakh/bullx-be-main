@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -46,13 +37,13 @@ const verifySignature = (address, nonce, signature) => {
     }
 };
 exports.verifySignature = verifySignature;
-const getPriceFromDexscreener = (pubKey) => __awaiter(void 0, void 0, void 0, function* () {
+const getPriceFromDexscreener = async (pubKey) => {
     try {
-        const response = yield fetch("https://api.dexscreener.io/latest/dex/tokens/" + pubKey);
+        const response = await fetch("https://api.dexscreener.io/latest/dex/tokens/" + pubKey);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = yield response.json();
+        const data = await response.json();
         if (data.pairs && data.pairs.length > 0) {
             const price = parseFloat(data.pairs[0].priceUsd);
             return isNaN(price) ? null : price;
@@ -65,21 +56,21 @@ const getPriceFromDexscreener = (pubKey) => __awaiter(void 0, void 0, void 0, fu
         console.error("Failed to fetch price:", error);
         return null;
     }
-});
+};
 exports.getPriceFromDexscreener = getPriceFromDexscreener;
 /**
  * Get metadata of SPL token
  * @param {string} pubKey
  * @returns
  */
-const getMetadata = (pubKey) => __awaiter(void 0, void 0, void 0, function* () {
+const getMetadata = async (pubKey) => {
     const metaplex = js_1.Metaplex.make(exports.connection);
     const mintAddress = new web3_js_1.PublicKey(pubKey);
-    const metadata = yield metaplex
+    const metadata = await metaplex
         .nfts()
         .findByMint({ mintAddress: mintAddress });
     return metadata;
-});
+};
 exports.getMetadata = getMetadata;
 function formatNumber(num) {
     if (num > 1) {

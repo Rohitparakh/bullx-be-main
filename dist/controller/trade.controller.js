@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -19,11 +10,12 @@ const pump_1 = require("../utils/pump");
 const trade_1 = require("../utils/trade");
 const token_1 = __importDefault(require("../model/token"));
 const trade_2 = __importDefault(require("../model/trade"));
-exports.priceFetchinUSD = (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const p_limit_1 = __importDefault(require("p-limit"));
+exports.priceFetchinUSD = (0, express_async_handler_1.default)(async (req, res) => {
     // const { mint, amount, prvKey, isBuy } = req.body;
     const { mint } = req.params;
     let result;
-    let priceUSD = yield (0, trade_1.priceFetchUSD)(mint);
+    let priceUSD = await (0, trade_1.priceFetchUSD)(mint);
     // console.log("prrr ", priceUSD)
     if (Number(priceUSD) > 0) {
         res.status(200).json({ success: true, data: { price: priceUSD } });
@@ -31,15 +23,15 @@ exports.priceFetchinUSD = (0, express_async_handler_1.default)((req, res) => __a
     else {
         res.status(500).json({ success: false, msg: "Error Fetching Price" });
     }
-}));
-exports.trade = (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+exports.trade = (0, express_async_handler_1.default)(async (req, res) => {
     const { mint, amount, id, isBuy } = req.body;
     let result;
     if (!isBuy) {
-        result = yield (0, trade_1.sell)(mint, amount, id);
+        result = await (0, trade_1.sell)(mint, amount, id);
     }
     else {
-        result = yield (0, trade_1.buy)(mint, amount, id);
+        result = await (0, trade_1.buy)(mint, amount, id);
     }
     if (result.success) {
         res.status(200).json({ success: result.success });
@@ -47,117 +39,195 @@ exports.trade = (0, express_async_handler_1.default)((req, res) => __awaiter(voi
     else {
         res.status(500).json({ success: result.success, msg: result.msg });
     }
-}));
-exports.walletTokens = (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+});
+// === In-Memory Caches ===
+const tokenDetailCache = new Map();
+const priceCache = new Map();
+const solPriceCache = new Map();
+// === Cached Wrappers ===
+async function getTokenDetailsCached(mint) {
+    if (tokenDetailCache.has(mint))
+        return tokenDetailCache.get(mint);
+    const data = await (0, pump_1.getTokenDetails)(mint);
+    tokenDetailCache.set(mint, data);
+    return data;
+}
+async function priceFetchUSDCached(mint) {
+    if (priceCache.has(mint))
+        return priceCache.get(mint);
+    const price = await (0, trade_1.priceFetchUSD)(mint) || 0;
+    priceCache.set(mint, price);
+    return price;
+}
+async function getSolPriceCached() {
+    if (solPriceCache.has('sol'))
+        return solPriceCache.get('sol');
+    const price = await (0, pump_1.getSolPrice)();
+    solPriceCache.set('sol', price);
+    return price;
+}
+exports.walletTokens = (0, express_async_handler_1.default)(async (req, res) => {
     try {
+        console.time('walletTokens');
         const { id } = req.body;
-        const [user, tokens, trade, solPrice] = yield Promise.all([
+        const [user, tokens, trade, solPrice] = await Promise.all([
             user_1.default.findOne({ id }).lean(),
             token_1.default.find({ id }).lean(),
             trade_2.default.find({ id }).lean(),
-            (0, pump_1.getSolPrice)(), // Cached SOL price
+            getSolPriceCached(),
         ]);
         if (!user) {
-            res.status(404).json({ success: false, msg: "User not found" });
+            res.status(404).json({ success: false, msg: 'User not found' });
             return;
         }
-        let solBalance = (_a = user.solBalance) !== null && _a !== void 0 ? _a : 0;
-        let totalValue = solBalance * solPrice;
+        let solBalance = user.solBalance ?? 0;
+        let totalValue = solPrice ? solBalance * solPrice : 0;
         const tokenList = [];
         if (tokens.length > 0) {
-            const tokenDetails = yield Promise.all(tokens.map((token) => __awaiter(void 0, void 0, void 0, function* () {
-                var _a, _b, _c, _d, _e;
-                try {
-                    const tokenData = yield (0, pump_1.getTokenDetails)(token.mint);
-                    const liquidityPools = Object.values(tokenData.liquidityPools);
-                    const firstPool = liquidityPools[0]; // Ensure it’s an object
-                    let tokenPriceSOL = (_b = (_a = firstPool === null || firstPool === void 0 ? void 0 : firstPool.protocolData) === null || _a === void 0 ? void 0 : _a.price0) !== null && _b !== void 0 ? _b : 0;
-                    if (tokenPriceSOL > ((_d = (_c = firstPool === null || firstPool === void 0 ? void 0 : firstPool.protocolData) === null || _c === void 0 ? void 0 : _c.price1) !== null && _d !== void 0 ? _d : 0)) {
-                        const tokenPriceUSD = yield (0, trade_1.priceFetchUSD)(token.mint);
-                        if (tokenPriceUSD !== null && solPrice !== 0) {
-                            tokenPriceSOL = tokenPriceUSD / solPrice;
-                        }
-                        else {
-                            console.error(`Invalid token price: ${tokenPriceUSD}, SOL: ${solPrice}`);
-                            return null;
-                        }
-                    }
-                    let tokenPrice = tokenPriceSOL * solPrice;
-                    if (!tokenPrice || isNaN(tokenPrice)) {
-                        tokenPrice = (_e = (yield (0, trade_1.priceFetchUSD)(token.mint))) !== null && _e !== void 0 ? _e : 0;
-                    }
-                    totalValue += tokenPrice * token.amount;
-                    return {
-                        name: token.name,
-                        symbol: token.symbol,
-                        mint: token.mint,
-                        amount: token.amount,
-                        invested: token.invested,
-                        sold: token.sold,
-                        price: tokenPrice,
-                    };
-                }
-                catch (error) {
-                    console.error("Error fetching token details:", error);
-                    return null; // Skip failed tokens
-                }
+            const mintSet = new Set(tokens.map((t) => t.mint));
+            const mintArray = Array.from(mintSet);
+            const limit = (0, p_limit_1.default)(7); // Increase concurrency to 7 safely
+            console.time('fetchTokenDataAndPrices');
+            // fetch both tokenDetails and USD prices together
+            const mintData = await Promise.all(mintArray.map((mint) => limit(async () => {
+                const [details, usdPrice] = await Promise.all([
+                    getTokenDetailsCached(mint),
+                    priceFetchUSDCached(mint),
+                ]);
+                return { mint, details, usdPrice };
             })));
-            tokenList.push(...tokenDetails.filter(Boolean));
+            const detailsByMint = Object.fromEntries(mintData.map(d => [d.mint, d.details]));
+            const usdPriceByMint = Object.fromEntries(mintData.map(d => [d.mint, d.usdPrice]));
+            console.timeEnd('fetchTokenDataAndPrices');
+            console.time('processTokens');
+            for (const token of tokens) {
+                const tokenData = detailsByMint[token.mint];
+                if (!tokenData)
+                    continue;
+                const pools = Object.values(tokenData.liquidityPools || {});
+                const firstPool = pools[0];
+                let tokenPriceSOL = firstPool?.protocolData?.price0 ?? 0;
+                const altPriceSOL = firstPool?.protocolData?.price1 ?? 0;
+                if (tokenPriceSOL > altPriceSOL) {
+                    const tokenPriceUSD = usdPriceByMint[token.mint];
+                    if (tokenPriceUSD !== null && solPrice && solPrice >= 0) {
+                        tokenPriceSOL = tokenPriceUSD / solPrice;
+                    }
+                    else {
+                        continue; // Skip invalid token
+                    }
+                }
+                let tokenPrice = solPrice ? tokenPriceSOL * solPrice : 0;
+                if (!tokenPrice || isNaN(tokenPrice)) {
+                    tokenPrice = usdPriceByMint[token.mint] ?? 0;
+                }
+                totalValue += tokenPrice * token.amount;
+                tokenList.push({
+                    name: token.name,
+                    symbol: token.symbol,
+                    mint: token.mint,
+                    amount: token.amount,
+                    invested: token.invested,
+                    sold: token.sold,
+                    price: tokenPrice,
+                });
+            }
+            console.timeEnd('processTokens');
         }
+        console.timeEnd('walletTokens');
         res.status(200).json({
             success: true,
-            data: { solBalance, totalValue, solPrice, tokenList, tradeHistory: trade },
+            data: {
+                solBalance,
+                totalValue,
+                solPrice,
+                tokenList,
+                tradeHistory: trade,
+            },
         });
     }
     catch (error) {
-        console.error("Error fetching wallet tokens:", error);
-        res.status(500).json({ success: false, msg: "Server error" });
+        console.error('Error fetching wallet tokens:', error);
+        res.status(500).json({ success: false, msg: 'Server error' });
     }
-}));
-// export const walletTokens = expressAsyncHandler(
-//   async (req: Request, res: Response) => {
-//     const { prvKey } = req.body;
-//     const user = await User.findOne({ prvKey: prvKey });
-//     const tokens: TokenData[] = await Token.find({ prvKey: prvKey });
-//     const trade: TradeData[] = await Trade.find({ prvKey: prvKey });
-//     console.log("User: ", user)
-//     console.log("Tokens: ", tokens)
-//     console.log("Trade: ", trade)
-//     const solBalance = user?.solBalance ?? 0; // Ensure solBalance is always a number
-//     const solPrice = await getSolPrice(); // Fetch Solana price in USD
-//     // console.log(solBalance,"sol bal")
-//     // console.log(solPrice)
-//     let totalValue = solBalance * solPrice; // Convert SOL balance to USD
+});
+// export const walletTokens = expressAsyncHandler(async (req: Request, res: Response): Promise<void> => {
+//   try {
+//     console.time('walletTokens');
+//     const { id } = req.body;
+//     const [user, tokens, trade, solPrice] = await Promise.all([
+//       User.findOne({ id }).lean(),
+//       Token.find({ id }).lean(),
+//       Trade.find({ id }).lean(),
+//       getSolPriceCached(),
+//     ]);
+//     if (!user) {
+//       res.status(404).json({ success: false, msg: 'User not found' });
+//       return;
+//     }
+//     let solBalance = user.solBalance ?? 0;
+//     let totalValue = 0;
+//     if(solPrice){totalValue = solBalance * solPrice;}
 //     const tokenList = [];
-//     if(tokens.length>0){
-//     for (const token of tokens) {
-//       try {
-//         const tokenData = await getTokenDetails(token.mint);
-//         const liquidityPools: any = Object.values(tokenData.liquidityPools);
-//         // Get token price in SOL
-//         let tokenPriceSOL: number = liquidityPools[0].protocolData.price0;    
-//         if (tokenPriceSOL>liquidityPools[0].protocolData.price1) {
-//           let tokenPriceUSD: number | null = await priceFetchUSD(token.mint);
-//           // console.log("Token Price USD:", tokenPriceUSD);
-//           if (tokenPriceUSD !== null && solPrice !== 0) {
+//     const mintSet = new Set(tokens.map((t:any) => t.mint));
+//     const mintArray = Array.from(mintSet);
+//     const limit = pLimit(5); // max 5 concurrent calls
+//     // Fetch Token Details and Prices with caching + throttling
+//     console.time('getTokenDetails+Prices');
+//     const [tokenDetailsMap, usdPricesMap] = await Promise.all([
+//       Promise.all(
+//         mintArray.map((mint:any) =>
+//           limit(async () => {
+//             try {
+//               const data = await getTokenDetailsCached(mint);
+//               return { mint, data };
+//             } catch {
+//               return { mint, data: null };
+//             }
+//           })
+//         )
+//       ),
+//       Promise.all(
+//         mintArray.map((mint:any) =>
+//           limit(async () => {
+//             try {
+//               const price = await priceFetchUSDCached(mint);
+//               return { mint, price };
+//             } catch {
+//               return { mint, price: null };
+//             }
+//           })
+//         )
+//       ),
+//     ]);
+//     console.timeEnd('getTokenDetails+Prices');
+//     const detailsByMint = Object.fromEntries(tokenDetailsMap.map((d) => [d.mint, d.data]));
+//     const usdPriceByMint = Object.fromEntries(usdPricesMap.map((p) => [p.mint, p.price]));
+//     // Process token data
+//     console.time('processTokens');
+//     const processedTokens = await Promise.all(
+//       tokens.map(async (token:any) => {
+//         const tokenData = detailsByMint[token.mint];
+//         if (!tokenData) return null;
+//         const pools = Object.values(tokenData.liquidityPools || {});
+//         const firstPool = pools[0] as any;
+//         let tokenPriceSOL = firstPool?.protocolData?.price0 ?? 0;
+//         const altPriceSOL = firstPool?.protocolData?.price1 ?? 0;
+//         if (tokenPriceSOL > altPriceSOL) {
+//           const tokenPriceUSD = usdPriceByMint[token.mint];
+//           if (tokenPriceUSD !== null && solPrice && solPrice>= 0) {
 //             tokenPriceSOL = tokenPriceUSD / solPrice;
 //           } else {
-//             console.error(`Invalid token price, cannot compute tokenPriceSOL. ${tokenPriceUSD} ${solPrice}`);
-//             res.status(500).json({ success: false, msg: "Error fetching token price" });
-//             return;
+//             return null;
 //           }
 //         }
-//         // Convert token price to USD
-//         let tokenPrice = tokenPriceSOL * solPrice;
-//         // If tokenPrice is 0, fetch price in USD
-//         if (!tokenPrice || Number.isNaN(tokenPrice)) {
-//           const fetchedPrice = await priceFetchUSD(token.mint);
-//           tokenPrice = fetchedPrice ?? 0; // Ensure it's a number
+//         let tokenPrice=0;
+//         if(solPrice)tokenPrice = tokenPriceSOL * solPrice;
+//         if (!tokenPrice || isNaN(tokenPrice)) {
+//           tokenPrice = usdPriceByMint[token.mint] ?? 0;
 //         }
-//         // Add token's USD value to totalValue
 //         totalValue += tokenPrice * token.amount;
-//         tokenList.push({
+//         return {
 //           name: token.name,
 //           symbol: token.symbol,
 //           mint: token.mint,
@@ -165,15 +235,106 @@ exports.walletTokens = (0, express_async_handler_1.default)((req, res) => __awai
 //           invested: token.invested,
 //           sold: token.sold,
 //           price: tokenPrice,
-//         });
-//       } catch (error) {
-//         console.error("Error fetching token details:", error);
-//       }
-//     }
+//         };
+//       })
+//     );
+//     console.timeEnd('processTokens');
+//     tokenList.push(...processedTokens.filter(Boolean));
+//     console.timeEnd('walletTokens');
+//     res.status(200).json({
+//       success: true,
+//       data: {
+//         solBalance,
+//         totalValue,
+//         solPrice,
+//         tokenList,
+//         tradeHistory: trade,
+//       },
+//     });
+//   } catch (error) {
+//     console.error('Error fetching wallet tokens:', error);
+//     res.status(500).json({ success: false, msg: 'Server error' });
 //   }
+// });
+// export const walletTokens = expressAsyncHandler(async (req: Request, res: Response): Promise<void> => {
+//   try {
+//     const { id } = req.body;
+//     const [user, tokens, trade, solPrice] = await Promise.all([
+//       User.findOne({ id }).lean(),
+//       Token.find({ id }).lean(),
+//       Trade.find({ id }).lean(),
+//       getSolPrice(), // Should be cached
+//     ]);
+//     if (!user) {
+//       res.status(404).json({ success: false, msg: "User not found" });
+//       return;
+//     }
+//     let solBalance = user.solBalance ?? 0;
+//     let totalValue = solBalance * solPrice;
+//     const tokenList = [];
+//     // === Cache Results for getTokenDetails & priceFetchUSD ===
+//     const mintSet = new Set(tokens.map(t => t.mint));
+//     const mintArray = Array.from(mintSet);
+//     const [tokenDetailsMap, usdPricesMap] = await Promise.all([
+//       Promise.all(mintArray.map(async (mint) => {
+//         try {
+//           const data = await getTokenDetails(mint);
+//           return { mint, data };
+//         } catch {
+//           return { mint, data: null };
+//         }
+//       })),
+//       Promise.all(mintArray.map(async (mint) => {
+//         try {
+//           const price = await priceFetchUSD(mint);
+//           return { mint, price };
+//         } catch {
+//           return { mint, price: null };
+//         }
+//       }))
+//     ]);
+//     const detailsByMint = Object.fromEntries(tokenDetailsMap.map(d => [d.mint, d.data]));
+//     const usdPriceByMint = Object.fromEntries(usdPricesMap.map(p => [p.mint, p.price]));
+//     // === Process Tokens in Parallel ===
+//     const processedTokens = await Promise.all(
+//       tokens.map(async (token) => {
+//         const tokenData = detailsByMint[token.mint];
+//         if (!tokenData) return null;
+//         const pools = Object.values(tokenData.liquidityPools || {});
+//         const firstPool = pools[0] as any;
+//         let tokenPriceSOL = firstPool?.protocolData?.price0 ?? 0;
+//         const altPriceSOL = firstPool?.protocolData?.price1 ?? 0;
+//         if (tokenPriceSOL > altPriceSOL) {
+//           const tokenPriceUSD = usdPriceByMint[token.mint];
+//           if (tokenPriceUSD !== null && solPrice !== 0) {
+//             tokenPriceSOL = tokenPriceUSD / solPrice;
+//           } else {
+//             return null;
+//           }
+//         }
+//         let tokenPrice = tokenPriceSOL * solPrice;
+//         if (!tokenPrice || isNaN(tokenPrice)) {
+//           tokenPrice = usdPriceByMint[token.mint] ?? 0;
+//         }
+//         totalValue += tokenPrice * token.amount;
+//         return {
+//           name: token.name,
+//           symbol: token.symbol,
+//           mint: token.mint,
+//           amount: token.amount,
+//           invested: token.invested,
+//           sold: token.sold,
+//           price: tokenPrice,
+//         };
+//       })
+//     );
+//     tokenList.push(...processedTokens.filter(Boolean));
 //     res.status(200).json({
 //       success: true,
 //       data: { solBalance, totalValue, solPrice, tokenList, tradeHistory: trade },
 //     });
+//   } catch (error) {
+//     console.error("Error fetching wallet tokens:", error);
+//     res.status(500).json({ success: false, msg: "Server error" });
 //   }
-// );
+// });

@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -19,33 +10,41 @@ const graphql_1 = require("../utils/graphql");
 const pump_1 = require("../utils/pump");
 const solana_1 = require("../utils/solana");
 const newPumpTokens_1 = __importDefault(require("../model/pump/newPumpTokens"));
-exports.getNewTokenList = (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const tokens = yield newPumpTokens_1.default.find({}).limit(100);
+exports.getNewTokenList = (0, express_async_handler_1.default)(async (req, res) => {
+    const tokens = await newPumpTokens_1.default.find({}).limit(100);
     res.status(200).json({ status: true, tokens });
-}));
-exports.getTokenList = (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+exports.getTokenList = (0, express_async_handler_1.default)(async (req, res) => {
     try {
         let { newToken, status } = req.query;
         newToken = Boolean(newToken);
-        let data = yield (0, graphql_1.bullxGraphql)("tokens", "", Object.assign(Object.assign({}, req.query), { volume: {
+        let data = await (0, graphql_1.bullxGraphql)("tokens", "", {
+            ...req.query,
+            volume: {
                 min: Number(req.query.volumeMin),
                 max: Number(req.query.volumeMax),
-            }, liquidity: {
+            },
+            liquidity: {
                 min: Number(req.query.liquidityMin),
                 max: Number(req.query.liquidityMax),
-            }, marketcap: {
+            },
+            marketcap: {
                 min: Number(req.query.marketcapMin),
                 max: Number(req.query.marketcapMax),
-            }, txns: {
+            },
+            txns: {
                 min: Number(req.query.txnsMin),
                 max: Number(req.query.txnsMax),
-            }, buys: {
+            },
+            buys: {
                 min: Number(req.query.buysMin),
                 max: Number(req.query.buysMax),
-            }, sells: {
+            },
+            sells: {
                 min: Number(req.query.sellsMin),
                 max: Number(req.query.sellsMax),
-            } }));
+            },
+        });
         let newTokens = [...data.data], tokens = [];
         if (newToken) {
             const now = Math.floor(new Date().getTime() / 1000);
@@ -53,15 +52,15 @@ exports.getTokenList = (0, express_async_handler_1.default)((req, res) => __awai
                 const oneDay = 24 * 3600;
                 if (newTokens[i].creationTimestamp + oneDay < now)
                     continue;
-                const tokenInfo = yield (0, graphql_1.bullxGraphql)("tokeninfo", newTokens[i].address);
+                const tokenInfo = await (0, graphql_1.bullxGraphql)("tokeninfo", newTokens[i].address);
                 newTokens[i].tokenInfo = tokenInfo.data[newTokens[i].address];
                 tokens.push(newTokens[i]);
             }
         }
         else {
             for (let i = 0; i < newTokens.length; i++) {
-                const tokenInfo = yield (0, graphql_1.bullxGraphql)("tokeninfo", newTokens[i].address);
-                const liquidity = yield (0, graphql_1.bullxGraphql)("liquidity", tokenInfo.name);
+                const tokenInfo = await (0, graphql_1.bullxGraphql)("tokeninfo", newTokens[i].address);
+                const liquidity = await (0, graphql_1.bullxGraphql)("liquidity", tokenInfo.name);
                 newTokens[i].tokenInfo = tokenInfo.data[newTokens[i].address].logo;
             }
             tokens = newTokens;
@@ -72,7 +71,7 @@ exports.getTokenList = (0, express_async_handler_1.default)((req, res) => __awai
     catch (error) {
         res.status(500).json({ success: false, tokens: [] });
     }
-}));
+});
 // Original 
 // export const getTokenDetails = expressAsyncHandler(
 //   async (req: Request, res: Response) => {
@@ -128,7 +127,7 @@ exports.getTokenList = (0, express_async_handler_1.default)((req, res) => __awai
 //     }
 //   }
 // );
-exports.getTokenDetails = (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.getTokenDetails = (0, express_async_handler_1.default)(async (req, res) => {
     // console.log("Fetching token detail")
     const { mintAddress } = req.query;
     try {
@@ -139,7 +138,7 @@ exports.getTokenDetails = (0, express_async_handler_1.default)((req, res) => __a
             // Check if the token is from Pump.fun
             const newAddress = (0, graphql_1.getPairAddress)(mintAddress);
             const bondingCurveAddress = newAddress.toString();
-            bondingCurveData = yield (0, pump_1.getPumpCurveState)(bondingCurveAddress);
+            bondingCurveData = await (0, pump_1.getPumpCurveState)(bondingCurveAddress);
             isPumpFun = true;
         }
         catch (error) {
@@ -147,16 +146,16 @@ exports.getTokenDetails = (0, express_async_handler_1.default)((req, res) => __a
         }
         if (!isPumpFun) {
             // Fetch data from Raydium if it's not a Pump.fun token
-            raydiumData = yield (0, pump_1.getRaydiumTokenData)((String(mintAddress)));
+            raydiumData = await (0, pump_1.getRaydiumTokenData)((String(mintAddress)));
             if (!raydiumData) {
                 throw new Error("Token not found on Pump.fun or Raydium.");
             }
         }
         // Fetch token info from GraphQL
-        let holders = yield (0, graphql_1.bullxGraphql)("holders", mintAddress);
-        const tokenInfo = yield (0, graphql_1.bullxGraphql)("tokeninfo", mintAddress);
-        const tradeInfo = yield (0, graphql_1.bullxGraphql)("trade", mintAddress);
-        const ohlcData = yield (0, graphql_1.bullxGraphql)("ohlc", mintAddress);
+        let holders = await (0, graphql_1.bullxGraphql)("holders", mintAddress);
+        const tokenInfo = await (0, graphql_1.bullxGraphql)("tokeninfo", mintAddress);
+        const tradeInfo = await (0, graphql_1.bullxGraphql)("trade", mintAddress);
+        const ohlcData = await (0, graphql_1.bullxGraphql)("ohlc", mintAddress);
         // Process OHLC data
         const ohlc = ohlcData.t.map((_, ind) => ({
             o: ohlcData.o[ind],
@@ -175,10 +174,21 @@ exports.getTokenDetails = (0, express_async_handler_1.default)((req, res) => __a
             for (let i = 0; i < holders.length; i++) {
                 const firstNumber = new bignumber_js_1.default(holders[i].currentlyHoldingAmount);
                 const toNumber = new bignumber_js_1.default(bondingCurveData.tokenTotalSupply);
-                holders[i] = Object.assign({ percentage: (0, solana_1.formatNumber)(firstNumber.dividedBy(toNumber).multipliedBy(100).toNumber()) }, holders[i]);
+                holders[i] = {
+                    percentage: (0, solana_1.formatNumber)(firstNumber.dividedBy(toNumber).multipliedBy(100).toNumber()),
+                    ...holders[i],
+                };
             }
         }
-        let data = Object.assign(Object.assign({ source: isPumpFun ? "Pump.fun" : "Raydium", bondingCurve: isPumpFun ? bondingCurveData.complete : false, raydium: !isPumpFun }, tokenInfo.data[mintAddress]), { holders, transactions: tradeInfo.tradeHistory, ohlc });
+        let data = {
+            source: isPumpFun ? "Pump.fun" : "Raydium",
+            bondingCurve: isPumpFun ? bondingCurveData.complete : false,
+            raydium: !isPumpFun,
+            ...tokenInfo.data[mintAddress],
+            holders,
+            transactions: tradeInfo.tradeHistory,
+            ohlc,
+        };
         res.status(200).json({ success: true, data });
     }
     catch (error) {
@@ -186,7 +196,7 @@ exports.getTokenDetails = (0, express_async_handler_1.default)((req, res) => __a
         // return null;
         res.status(500).json({ success: false, message: error });
     }
-}));
+});
 // From pump.ts 
 // export const getTokenDetails = async (mintAddress: string) => {
 //   try {
@@ -256,12 +266,12 @@ exports.getTokenDetails = (0, express_async_handler_1.default)((req, res) => __a
 //     return null;
 //   }
 // };
-exports.getPumpVision = (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.getPumpVision = (0, express_async_handler_1.default)(async (req, res) => {
     try {
         let { status } = req.query;
         let graduateStatus = Number(status);
         console.log("here!@!---> ", req.query);
-        let data = yield (0, graphql_1.bullxGraphql)("pumpVision", "", {}, graduateStatus);
+        let data = await (0, graphql_1.bullxGraphql)("pumpVision", "", {}, graduateStatus);
         let newTokens = [...data.data], tokens = [];
         for (let i = 0; i < newTokens.length; i++) {
             //const tokenInfo = await bullxGraphql("tokeninfo", newTokens[i].address as string);
@@ -275,7 +285,7 @@ exports.getPumpVision = (0, express_async_handler_1.default)((req, res) => __awa
     catch (error) {
         res.status(500).json({ success: false, tokens: [] });
     }
-}));
+});
 // export const getTokenImage = expressAsyncHandler(
 //   async(req: Request, res:Response) => {
 //     try{
@@ -288,12 +298,11 @@ exports.getPumpVision = (0, express_async_handler_1.default)((req, res) => __awa
 //     }
 //   }
 // )
-exports.getTokenImage = (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+exports.getTokenImage = (0, express_async_handler_1.default)(async (req, res) => {
     try {
         let { address } = req.query;
-        const tokenInfo = yield (0, graphql_1.bullxGraphql)("tokeninfo", address);
-        const logo = (_a = tokenInfo.data[address]) === null || _a === void 0 ? void 0 : _a.logo;
+        const tokenInfo = await (0, graphql_1.bullxGraphql)("tokeninfo", address);
+        const logo = tokenInfo.data[address]?.logo;
         // Check if logo starts with "http://" or "https://"
         const isValidUrl = typeof logo === "string" && /^(https?:\/\/)/.test(logo);
         // console.log("Token Info:", logo);
@@ -302,8 +311,8 @@ exports.getTokenImage = (0, express_async_handler_1.default)((req, res) => __awa
     catch (error) {
         res.status(500).json({ success: false, message: error });
     }
-}));
-exports.getTrendingTokens = (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+exports.getTrendingTokens = (0, express_async_handler_1.default)(async (req, res) => {
     try {
         const { timeframe } = req.query;
         const timeInSeconds = Number(timeframe) || 300; // Default: last 5 minutes
@@ -311,7 +320,7 @@ exports.getTrendingTokens = (0, express_async_handler_1.default)((req, res) => _
         // const timestamp = Math.floor(Date.now() / 1000) - timeInSeconds;
         console.log(timeframe);
         // console.log(timestamp)
-        let data = yield (0, graphql_1.bullxGraphql)("tokens", "", {
+        let data = await (0, graphql_1.bullxGraphql)("tokens", "", {
             // poolCreationBlockTimestamp: timestamp, // ✅ Pass timestamp directly
             volume: { min: 300000 },
             marketcap: { min: 100000 },
@@ -326,4 +335,4 @@ exports.getTrendingTokens = (0, express_async_handler_1.default)((req, res) => _
         console.error("Error fetching trending tokens:", error);
         res.status(500).json({ success: false, message: "Something went wrong" });
     }
-}));
+});

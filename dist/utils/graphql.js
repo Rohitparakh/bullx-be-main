@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateTrendingSolanaBody = exports.bullxGraphql = exports.generateFilterBullXBody = exports.generatePumpVisionBullXBody = exports.generateBullXBody = exports.generateBullXHeaders = exports.getAuthToken = exports.getPairAddress = exports.jwtTokenCache = void 0;
 const web3_js_1 = require("@solana/web3.js");
@@ -30,8 +21,8 @@ const getPairAddress = (mintAddress) => {
     return bonding;
 };
 exports.getPairAddress = getPairAddress;
-const getAuthToken = () => __awaiter(void 0, void 0, void 0, function* () {
-    const resp = yield fetch("https://securetoken.googleapis.com/v1/token?key=AIzaSyCdU8BxOul-NOOJ-e-eCf_-5QCz8ULqIPg", {
+const getAuthToken = async () => {
+    const resp = await fetch("https://securetoken.googleapis.com/v1/token?key=AIzaSyCdU8BxOul-NOOJ-e-eCf_-5QCz8ULqIPg", {
         headers: {
             accept: "*/*",
             "accept-language": "en-US,en;q=0.9",
@@ -52,37 +43,37 @@ const getAuthToken = () => __awaiter(void 0, void 0, void 0, function* () {
         body: "grant_type=refresh_token&refresh_token=AMf-vBwzm0pxdBPSV-C3LLUaurFtBHyYrSL9uZQh6tq_8z7N071OfL2dXLnYdlZ4sHcGo7mPY2-QFNXZublp4c9N8BomisVZFUEkJz-dnp8f14669FLO8JyFN-RM5GovK8YTLCQkvR90x1cJvY8sfvgOuCVsuKc9SbsaoLRc9CLSLkGC20CencD6t4pRUcGzUg6-aYg6fgtlT60oO034z4UEcPufJ0lOWcuBaRikR7n8F5k-b7XDuCw",
         method: "POST",
     });
-    const data = yield resp.json();
+    const data = await resp.json();
     return data;
-});
+};
 exports.getAuthToken = getAuthToken;
-const getJwtToken = () => __awaiter(void 0, void 0, void 0, function* () {
+const getJwtToken = async () => {
     if (exports.jwtTokenCache.jwtToken &&
         Date.now() - exports.jwtTokenCache.updatedAt < exports.jwtTokenCache.updateTimer) {
         return exports.jwtTokenCache.jwtToken;
     }
-    const fetchedAuthToken = yield (0, exports.getAuthToken)();
+    const fetchedAuthToken = await (0, exports.getAuthToken)();
     exports.jwtTokenCache.authToken = fetchedAuthToken.access_token;
     exports.jwtTokenCache.updatedAt = Date.now();
     console.log("🚀 ~ fetched ~ access_token for bullx");
     return exports.jwtTokenCache.jwtToken;
-});
-const jwtTokenGeneration = () => __awaiter(void 0, void 0, void 0, function* () {
+};
+const jwtTokenGeneration = async () => {
     try {
-        yield getJwtToken();
-        setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
-            yield getJwtToken();
-        }), exports.jwtTokenCache.updateTimer);
+        await getJwtToken();
+        setInterval(async () => {
+            await getJwtToken();
+        }, exports.jwtTokenCache.updateTimer);
     }
     catch (error) {
         console.log("error :>> ", error);
     }
-});
+};
 jwtTokenGeneration();
 // BullX API
-const generateBullXHeaders = () => __awaiter(void 0, void 0, void 0, function* () {
+const generateBullXHeaders = async () => {
     if (!exports.jwtTokenCache.authToken) {
-        yield getJwtToken();
+        await getJwtToken();
     }
     return {
         accept: "application/json, text/plain, */*",
@@ -99,7 +90,7 @@ const generateBullXHeaders = () => __awaiter(void 0, void 0, void 0, function* (
         Referer: "https://bullx.io/",
         "Referrer-Policy": "strict-origin-when-cross-origin",
     };
-});
+};
 exports.generateBullXHeaders = generateBullXHeaders;
 const generateBullXBody = (apiType, mintAddress) => {
     let body = "";
@@ -174,9 +165,9 @@ const generateFilterBullXBody = ({ mintAuthDisabled = false, freezeAuthDisabled 
                       "LP Burned":${lpBurned},
                       "Top 10 Holders":${topTenHolders},
                       "With at least 1 social":${social},
-                      "Liquidity":{"dollar":true, "min":${(liquidity === null || liquidity === void 0 ? void 0 : liquidity.min) ? liquidity.min : 0}, "max":${(liquidity === null || liquidity === void 0 ? void 0 : liquidity.max) ? liquidity.max : 1000000000}},
-                      "Volume":{"dollar":true, "min":${(volume === null || volume === void 0 ? void 0 : volume.min) ? volume.min : 80},"max":${(volume === null || volume === void 0 ? void 0 : volume.max) ? volume.max : 10000000000}},
-                      "Market Cap":{"dollar":true, "min":${(marketcap === null || marketcap === void 0 ? void 0 : marketcap.min) ? marketcap.min : 0}, "max":${(marketcap === null || marketcap === void 0 ? void 0 : marketcap.max) ? marketcap.max : 10000000000}},
+                      "Liquidity":{"dollar":true, "min":${liquidity?.min ? liquidity.min : 0}, "max":${liquidity?.max ? liquidity.max : 1000000000}},
+                      "Volume":{"dollar":true, "min":${volume?.min ? volume.min : 80},"max":${volume?.max ? volume.max : 10000000000}},
+                      "Market Cap":{"dollar":true, "min":${marketcap?.min ? marketcap.min : 0}, "max":${marketcap?.max ? marketcap.max : 10000000000}},
                       "Txns":{},
                       "Buys":{},
                       "Sells":{}
@@ -212,8 +203,8 @@ const generateFilterBullXBody = ({ mintAuthDisabled = false, freezeAuthDisabled 
     return bodyString;
 };
 exports.generateFilterBullXBody = generateFilterBullXBody;
-const bullxGraphql = (apiType, mintAddress, filters, graduateStatus) => __awaiter(void 0, void 0, void 0, function* () {
-    const headers = yield (0, exports.generateBullXHeaders)();
+const bullxGraphql = async (apiType, mintAddress, filters, graduateStatus) => {
+    const headers = await (0, exports.generateBullXHeaders)();
     let body = "";
     if (apiType === "tokens" && filters) {
         body = (0, exports.generateFilterBullXBody)(filters);
@@ -227,7 +218,7 @@ const bullxGraphql = (apiType, mintAddress, filters, graduateStatus) => __awaite
     const endpoint = apiType === "ohlc"
         ? "https://api-edge.bullx.io/chart"
         : "https://api-edge.bullx.io/api";
-    const resp = yield fetch(endpoint, {
+    const resp = await fetch(endpoint, {
         headers,
         body,
         method: "POST",
@@ -236,10 +227,10 @@ const bullxGraphql = (apiType, mintAddress, filters, graduateStatus) => __awaite
     // console.log("status:", graduateStatus);
     // console.log("header:",headers);
     // console.log("body:", body);
-    const jsonData = yield resp.json();
+    const jsonData = await resp.json();
     // console.log("response:", jsonData);
     return jsonData;
-});
+};
 exports.bullxGraphql = bullxGraphql;
 const generateTrendingSolanaBody = (timeframe) => {
     let timestamp = Math.floor(new Date().getTime() / 1000) - timeframe;

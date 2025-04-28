@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -55,21 +46,21 @@ const user_1 = __importDefault(require("../model/user"));
 //         }
 //     }
 // )
-exports.setBalance = (0, express_async_handler_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.setBalance = (0, express_async_handler_1.default)(async (req, res) => {
     console.log("Balance API Hit"); // Check if this logs
     const { id, newBalance } = req.body;
-    const user = yield user_1.default.findOne({ id: id });
+    const user = await user_1.default.findOne({ id: id });
     if (!user) {
         res.status(500).json({ success: false, message: "user doesn't exist" });
     }
     else {
         // Update the user's balance
         user.solBalance = newBalance;
-        yield user.save();
+        await user.save();
         res.status(200).json({ success: true, message: "Balance updated successfully" });
         console.log("Updated balance for user");
     }
-}));
+});
 // export const setBalance = expressAsyncHandler(
 //     async (req: SocRequest, res: Response) => {
 //         const { prvKey, newBalance } = req.body;

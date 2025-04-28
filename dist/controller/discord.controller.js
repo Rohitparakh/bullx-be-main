@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -48,8 +39,7 @@ const user_1 = __importDefault(require("../model/user"));
 //       methods: ["GET","PUT", "POST"],
 //     },
 //   });
-exports.discordLogin = (0, express_async_handler_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+exports.discordLogin = (0, express_async_handler_1.default)(async (req, res, next) => {
     // res.send("Discord callback route is active");
     const code = req.query.code;
     console.log("client_id:", process.env.DISCORD_CLIENT_ID);
@@ -69,14 +59,14 @@ exports.discordLogin = (0, express_async_handler_1.default)((req, res, next) => 
         params.append("redirect_uri", `${process.env.DISCORD_REDIRECT_URI}`);
         params.append("scope", "identify email");
         // Send request to Discord API for the token
-        const tokenResponse = yield axios_1.default.post("https://discord.com/api/oauth2/token", params, {
+        const tokenResponse = await axios_1.default.post("https://discord.com/api/oauth2/token", params, {
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded",
             },
         });
         const { access_token } = tokenResponse.data;
         // 2. Fetch user information using the access token
-        const userResponse = yield axios_1.default.get("https://discord.com/api/users/@me", {
+        const userResponse = await axios_1.default.get("https://discord.com/api/users/@me", {
             headers: {
                 Authorization: `Bearer ${access_token}`,
             },
@@ -84,7 +74,7 @@ exports.discordLogin = (0, express_async_handler_1.default)((req, res, next) => 
         const discordUser = userResponse.data;
         console.log("discordUser");
         console.log(discordUser);
-        const user = yield user_1.default.findOne({ id: discordUser.id });
+        const user = await user_1.default.findOne({ id: discordUser.id });
         if (!user) {
             const newUser = new user_1.default({
                 username: discordUser.username,
@@ -94,7 +84,7 @@ exports.discordLogin = (0, express_async_handler_1.default)((req, res, next) => 
                 solBalance: 30,
             });
             try {
-                const savedUser = yield newUser.save();
+                const savedUser = await newUser.save();
                 // io.emit("login", {
                 //   user: savedUser,
                 //   pubKey: savedUser.pubKey,
@@ -127,14 +117,14 @@ exports.discordLogin = (0, express_async_handler_1.default)((req, res, next) => 
         }
         sendData(req.io, "sendData", {
             user: discordUser,
-            id: user === null || user === void 0 ? void 0 : user.id,
+            id: user?.id,
         });
         // 3. Optional: Save user to DB, set session, JWT etc.
         // 4. Redirect user to frontend with user info or token
         res.redirect(`${process.env.FRONTEND_URL}/get-started?user=${encodeURIComponent(JSON.stringify(discordUser))}`);
     }
     catch (err) {
-        console.error("Error during Discord OAuth", ((_a = err === null || err === void 0 ? void 0 : err.response) === null || _a === void 0 ? void 0 : _a.data) || err.message);
+        console.error("Error during Discord OAuth", err?.response?.data || err.message);
         next(err); // Forward the error to the next middleware (for proper error handling)
     }
-}));
+});
