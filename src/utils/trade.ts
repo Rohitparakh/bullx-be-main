@@ -154,23 +154,33 @@ export const sell = async (mint: string, amount: number, id: string) => {
 //   return { success: true };
 // };
 
+const priceCache = new Map<string, { price: number; timestamp: number }>();
+const CACHE_TTL = 1 * 60 * 1000; // 5 minutes
+
 export const priceFetchUSD = async (address: string): Promise<number | null> => {
+  const now = Date.now();
+  const cached = priceCache.get(address);
+
+  if (cached && now - cached.timestamp < CACHE_TTL) {
+    return cached.price;
+  }
+
   const requestOptions = {
     method: "get",
-    headers: {
-      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjcmVhdGVkQXQiOjE3MjM2Nzk3MDgxOTgsImVtYWlsIjoiZHJlYW15dGdib3RAZ21haWwuY29tIiwiYWN0aW9uIjoidG9rZW4tYXBpIiwiYXBpVmVyc2lvbiI6InYyIiwiaWF0IjoxNzIzNjc5NzA4fQ.qEG3q2DSX_i60f8eNhAZ_XEQgmbRHZmQPgY4_7RhZQU"
-    }
+    headers: {"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjcmVhdGVkQXQiOjE3MjM2Nzk3MDgxOTgsImVtYWlsIjoiZHJlYW15dGdib3RAZ21haWwuY29tIiwiYWN0aW9uIjoidG9rZW4tYXBpIiwiYXBpVmVyc2lvbiI6InYyIiwiaWF0IjoxNzIzNjc5NzA4fQ.qEG3q2DSX_i60f8eNhAZ_XEQgmbRHZmQPgY4_7RhZQU"}
+
   };
 
-  // console.log("Fetching price for mint:", address);
-
   try {
-    const response = await fetch(`https://pro-api.solscan.io/v2.0/token/price?address=${address}`, requestOptions);
+    const response = await fetch(
+      `https://pro-api.solscan.io/v2.0/token/price?address=${address}`,
+      requestOptions
+    );
     const jsonResponse = await response.json();
 
     if (jsonResponse.success && jsonResponse.data.length > 0) {
-      const price = jsonResponse.data[jsonResponse.data.length-1].price;
-      // console.log("Token Price USD:", price);
+      const price = jsonResponse.data[jsonResponse.data.length - 1].price;
+      priceCache.set(address, { price, timestamp: now });
       return price;
     } else {
       console.error("Invalid API response format or no price data:", jsonResponse);
@@ -181,6 +191,35 @@ export const priceFetchUSD = async (address: string): Promise<number | null> => 
     return null;
   }
 };
+
+
+// export const priceFetchUSD = async (address: string): Promise<number | null> => {
+//   const requestOptions = {
+//     method: "get",
+//     headers: {
+//       "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjcmVhdGVkQXQiOjE3MjM2Nzk3MDgxOTgsImVtYWlsIjoiZHJlYW15dGdib3RAZ21haWwuY29tIiwiYWN0aW9uIjoidG9rZW4tYXBpIiwiYXBpVmVyc2lvbiI6InYyIiwiaWF0IjoxNzIzNjc5NzA4fQ.qEG3q2DSX_i60f8eNhAZ_XEQgmbRHZmQPgY4_7RhZQU"
+//     }
+//   };
+
+//   // console.log("Fetching price for mint:", address);
+
+//   try {
+//     const response = await fetch(`https://pro-api.solscan.io/v2.0/token/price?address=${address}`, requestOptions);
+//     const jsonResponse = await response.json();
+
+//     if (jsonResponse.success && jsonResponse.data.length > 0) {
+//       const price = jsonResponse.data[jsonResponse.data.length-1].price;
+//       // console.log("Token Price USD:", price);
+//       return price;
+//     } else {
+//       console.error("Invalid API response format or no price data:", jsonResponse);
+//       return null;
+//     }
+//   } catch (error) {
+//     console.error("Error fetching token price:", error);
+//     return null;
+//   }
+// };
 
 // export const buy = async (mint: string, amount: number, id: string) => {
 //   const tokenData = await getTokenDetails(mint);
