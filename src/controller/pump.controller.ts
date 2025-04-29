@@ -139,88 +139,172 @@ export const getTokenList = expressAsyncHandler(
 //   }
 // );
 
-
 export const getTokenDetails = expressAsyncHandler(
   async (req: Request, res: Response) => {
-    // console.log("Fetching token detail")
     const { mintAddress } = req.query;
     try {
       let bondingCurveData: any = null;
       let raydiumData: any = null;
       let isPumpFun = false;
-  
+
+      const mint = mintAddress as string;
+
       try {
-        // Check if the token is from Pump.fun
-        const newAddress = getPairAddress(mintAddress as string);
-        const bondingCurveAddress = newAddress.toString();
+        const bondingCurveAddress = getPairAddress(mint).toString();
         bondingCurveData = await getPumpCurveState(bondingCurveAddress);
         isPumpFun = true;
-      } catch (error) {
-        console.log("Not a Pump.fun token, fetching from Raydium...");
+      } catch {
+        // Not a Pump.fun token
       }
-  
+
       if (!isPumpFun) {
-        // Fetch data from Raydium if it's not a Pump.fun token
-        raydiumData = await getRaydiumTokenData((String(mintAddress)));
+        // Only fetch Raydium if Pump.fun fails
+        raydiumData = await getRaydiumTokenData(mint);
         if (!raydiumData) {
-          throw new Error("Token not found on Pump.fun or Raydium.");
+          res.status(404).json({
+            success: false,
+            message: "Token not found on Pump.fun or Raydium.",
+          });
+          return;
         }
       }
-  
-      // Fetch token info from GraphQL
-      let holders = await bullxGraphql("holders", mintAddress as string);
-      const tokenInfo = await bullxGraphql("tokeninfo", mintAddress as string);
-      const tradeInfo = await bullxGraphql("trade", mintAddress as string);
-      const ohlcData = await bullxGraphql("ohlc", mintAddress as string);
-  
-      // Process OHLC data
-      const ohlc: any[] = ohlcData.t.map((_:any, ind:any) => ({
-        o: ohlcData.o[ind],
-        h: ohlcData.h[ind],
-        l: ohlcData.l[ind],
-        c: ohlcData.c[ind],
-        t: ohlcData.t[ind],
-        v: ohlcData.v[ind],
-      }));
-  
-      // Limit holders to 10
-      if (holders.length > 10) {
-        holders = holders.slice(0, 9);
-      }
-  
-      // Calculate holder percentages for Pump.fun tokens
-      if (isPumpFun) {
-        for (let i = 0; i < holders.length; i++) {
-          const firstNumber = new BigNumber(holders[i].currentlyHoldingAmount);
-          const toNumber = new BigNumber(bondingCurveData.tokenTotalSupply);
-          holders[i] = {
-            percentage: formatNumber(
-              firstNumber.dividedBy(toNumber).multipliedBy(100).toNumber()
-            ),
-            ...holders[i],
+
+      // Fetch GraphQL data in parallel
+      const [holdersRaw, tokenInfo, tradeInfo, ohlcData] = await Promise.all([
+        bullxGraphql("holders", mint),
+        bullxGraphql("tokeninfo", mint),
+        bullxGraphql("trade", mint),
+        bullxGraphql("ohlc", mint),
+      ]);
+
+      // Slice and process holders
+      const holders = (holdersRaw || []).slice(0, 10).map((holder: any) => {
+        if (isPumpFun) {
+          const percent = new BigNumber(holder.currentlyHoldingAmount)
+            .dividedBy(new BigNumber(bondingCurveData.tokenTotalSupply))
+            .multipliedBy(100)
+            .toNumber();
+
+          return {
+            percentage: formatNumber(percent),
+            ...holder,
           };
         }
-      }
-  
-      let data = {
-        source: isPumpFun ? "Pump.fun" : "Raydium",
-        bondingCurve: isPumpFun ? bondingCurveData.complete : false,
-        raydium: !isPumpFun,
-        ...tokenInfo.data[mintAddress as string],
-        holders,
-        transactions: tradeInfo.tradeHistory,
-        ohlc,
-      }
-        res.status(200).json({ success: true, data });
-  
-    } catch (error) {
-      console.log("Error fetching token details:", error);
-      // return null;
-      res.status(500).json({ success: false, message: error });
+        return holder;
+      });
 
+      // Process OHLC
+      const ohlc = ohlcData?.t?.map((_: any, i: number) => ({
+        o: ohlcData.o[i],
+        h: ohlcData.h[i],
+        l: ohlcData.l[i],
+        c: ohlcData.c[i],
+        t: ohlcData.t[i],
+        v: ohlcData.v[i],
+      })) || [];
+
+      // Final response object
+      const data = {
+        source: isPumpFun ? "Pump.fun" : "Raydium",
+        bondingCurve: isPumpFun ? bondingCurveData?.complete : false,
+        raydium: !isPumpFun,
+        ...tokenInfo?.data?.[mint],
+        holders,
+        transactions: tradeInfo?.tradeHistory || [],
+        ohlc,
+      };
+
+      res.status(200).json({ success: true, data });
+    } catch (error) {
+      
+      console.error("Error fetching token details:", error);
+      res.status(500).json({ success: false, message: "Server error" });
     }
   }
 );
+
+
+// export const getTokenDetails = expressAsyncHandler(
+//   async (req: Request, res: Response) => {
+//     // console.log("Fetching token detail")
+//     const { mintAddress } = req.query;
+//     try {
+//       let bondingCurveData: any = null;
+//       let raydiumData: any = null;
+//       let isPumpFun = false;
+  
+//       try {
+//         // Check if the token is from Pump.fun
+//         const newAddress = getPairAddress(mintAddress as string);
+//         const bondingCurveAddress = newAddress.toString();
+//         bondingCurveData = await getPumpCurveState(bondingCurveAddress);
+//         isPumpFun = true;
+//       } catch (error) {
+//         console.log("Not a Pump.fun token, fetching from Raydium...");
+//       }
+  
+//       if (!isPumpFun) {
+//         // Fetch data from Raydium if it's not a Pump.fun token
+//         raydiumData = await getRaydiumTokenData((String(mintAddress)));
+//         if (!raydiumData) {
+//           throw new Error("Token not found on Pump.fun or Raydium.");
+//         }
+//       }
+  
+//       // Fetch token info from GraphQL
+//       let holders = await bullxGraphql("holders", mintAddress as string);
+//       const tokenInfo = await bullxGraphql("tokeninfo", mintAddress as string);
+//       const tradeInfo = await bullxGraphql("trade", mintAddress as string);
+//       const ohlcData = await bullxGraphql("ohlc", mintAddress as string);
+  
+//       // Process OHLC data
+//       const ohlc: any[] = ohlcData.t.map((_:any, ind:any) => ({
+//         o: ohlcData.o[ind],
+//         h: ohlcData.h[ind],
+//         l: ohlcData.l[ind],
+//         c: ohlcData.c[ind],
+//         t: ohlcData.t[ind],
+//         v: ohlcData.v[ind],
+//       }));
+  
+//       // Limit holders to 10
+//       if (holders.length > 10) {
+//         holders = holders.slice(0, 9);
+//       }
+  
+//       // Calculate holder percentages for Pump.fun tokens
+//       if (isPumpFun) {
+//         for (let i = 0; i < holders.length; i++) {
+//           const firstNumber = new BigNumber(holders[i].currentlyHoldingAmount);
+//           const toNumber = new BigNumber(bondingCurveData.tokenTotalSupply);
+//           holders[i] = {
+//             percentage: formatNumber(
+//               firstNumber.dividedBy(toNumber).multipliedBy(100).toNumber()
+//             ),
+//             ...holders[i],
+//           };
+//         }
+//       }
+  
+//       let data = {
+//         source: isPumpFun ? "Pump.fun" : "Raydium",
+//         bondingCurve: isPumpFun ? bondingCurveData.complete : false,
+//         raydium: !isPumpFun,
+//         ...tokenInfo.data[mintAddress as string],
+//         holders,
+//         transactions: tradeInfo.tradeHistory,
+//         ohlc,
+//       }
+//         res.status(200).json({ success: true, data });
+  
+//     } catch (error) {
+//       console.log("Error fetching token details:", error);
+//       // return null;
+//       res.status(500).json({ success: false, message: error });
+
+//     }
+//   }
+// );
 
 
 // From pump.ts 
